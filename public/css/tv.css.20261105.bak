@@ -1,0 +1,224 @@
+/* =====================================================================
+ * ALTUG KUYUMCULUK - TV Ekrani (1920x1080 hedef, 16:9, kaydirma YOK)
+ * Eski tarayici: CSS degiskeni, grid-gap, clamp kullanimaz.
+ * ===================================================================== */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #101014;
+  color: #ffffff;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+}
+
+#tv-root {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 18px 28px;
+}
+
+/* ---------------- UST ---------------- */
+#tv-header {
+  height: 90px;
+  border-bottom: 3px solid #c9a227;
+  padding-bottom: 10px;
+}
+#tv-brand { float: left; }
+#tv-logo {
+  max-height: 70px;
+  vertical-align: middle;
+  margin-right: 16px;
+}
+#tv-brand-name {
+  font-size: 44px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  color: #e8c547;
+  vertical-align: middle;
+}
+#tv-datetime {
+  float: right;
+  text-align: right;
+  font-size: 34px;
+  color: #dddddd;
+}
+#tv-clock {
+  display: block;
+  font-size: 46px;
+  font-weight: bold;
+  color: #ffffff;
+}
+#tv-live {
+  position: absolute;
+  right: 30px;
+  top: 120px;
+  font-size: 24px;
+  color: #bbbbbb;
+}
+.dot {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border-radius: 9px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.dot-green { background: #2ecc71; }
+.dot-amber { background: #f1c40f; }
+.dot-red   { background: #e74c3c; }
+.dot-gray  { background: #7f8c8d; }
+
+/* ---------------- ORTA ---------------- */
+#tv-main {
+  position: absolute;
+  top: 130px;
+  left: 28px;
+  right: 28px;
+  bottom: 150px;
+}
+#tv-products-panel {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 62%;
+  background: #17171d;
+  border: 1px solid #3a3a44;
+  border-radius: 6px;
+  padding: 8px 20px;
+  overflow: hidden;
+}
+#tv-products-head {
+  border-bottom: 2px solid #c9a227;
+  padding: 6px 0;
+  font-size: 26px;
+  color: #c9a227;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+#tv-col-name { display: inline-block; width: 38%; }
+#tv-col-buy, #tv-col-sell { display: inline-block; width: 30%; text-align: right; }
+
+#tv-products-body { overflow: hidden; }
+
+.tv-row {
+  padding: 0 4px;
+  border-bottom: 1px solid #2a2a33;
+  overflow: hidden;
+}
+.tv-row:nth-child(odd) { background: #1b1b22; }
+.tv-cell-name {
+  display: inline-block;
+  width: 38%;
+  color: #ffffff;
+  font-weight: 600;
+}
+.tv-cell-price {
+  display: inline-block;
+  width: 30%;
+  text-align: right;
+  color: #e8c547;
+  font-weight: bold;
+}
+.tv-row-wide .tv-cell-price { width: 61%; }
+
+/* Satir sayisina gore otomatik boyut (ekrasa sigar) */
+.rows-8 .tv-row   { height: 78px; line-height: 78px; font-size: 34px; }
+.rows-11 .tv-row  { height: 56px; line-height: 56px; font-size: 28px; }
+.rows-14 .tv-row  { height: 44px; line-height: 44px; font-size: 23px; }
+.rows-18 .tv-row  { height: 34px; line-height: 34px; font-size: 18px; }
+
+/* ---------------- REKLAM ---------------- */
+#tv-ads-panel {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 36%;
+}
+#tv-ad-frame {
+  width: 100%;
+  height: 100%;
+  background: #17171d;
+  border: 1px solid #3a3a44;
+  border-radius: 6px;
+  text-align: center;
+  overflow: hidden;
+}
+#tv-ad-img {
+  max-width: 100%;
+  max-height: 72%;
+  margin-top: 10px;
+}
+#tv-ad-text { font-size: 30px; padding: 10px 20px; }
+.ad-h { color: #e8c547; font-weight: bold; font-size: 38px; padding: 10px; }
+.ad-p { color: #ffffff; font-size: 28px; padding: 6px 14px; }
+
+#tv-ad-default { padding-top: 90px; }
+.ad-gold-line {
+  width: 60%;
+  height: 2px;
+  margin: 26px auto;
+  background: #c9a227;
+}
+.ad-title { font-size: 42px; color: #e8c547; font-weight: bold; letter-spacing: 2px; }
+.ad-sub { font-size: 26px; color: #cccccc; margin-top: 14px; }
+
+/* ---------------- ALT ---------------- */
+#tv-footer {
+  position: absolute;
+  left: 28px; right: 28px; bottom: 14px;
+  height: 110px;
+  border-top: 3px solid #c9a227;
+  padding-top: 10px;
+}
+#tv-currency-box { float: left; }
+.cur-block {
+  display: inline-block;
+  margin-right: 60px;
+  font-size: 34px;
+}
+.cur-name {
+  color: #ffffff;
+  font-weight: bold;
+  margin-right: 20px;
+  padding: 4px 14px;
+  border: 2px solid #c9a227;
+  border-radius: 4px;
+  font-size: 26px;
+}
+.cur-buy, .cur-sell { color: #e8c547; font-weight: bold; margin-right: 24px; }
+
+#tv-status-box {
+  float: right;
+  text-align: right;
+  font-size: 22px;
+  color: #bbbbbb;
+}
+.tv-note { color: #e8c547; font-size: 24px; margin-top: 6px; }
+
+/* ---------------- UYARI BANMI ---------------- */
+#tv-stale-bar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background: #8b2e2e;
+  color: #ffffff;
+  text-align: center;
+  font-size: 26px;
+  font-weight: bold;
+  padding: 8px 0;
+  letter-spacing: 1px;
+}
+
+/* 1366x768 icin kucuk ayar */
+@media (max-width: 1400px) {
+  #tv-brand-name { font-size: 34px; }
+  #tv-clock { font-size: 36px; }
+  .rows-8 .tv-row  { height: 56px; line-height: 56px; font-size: 26px; }
+  .rows-11 .tv-row { height: 42px; line-height: 42px; font-size: 22px; }
+  .rows-14 .tv-row { height: 34px; line-height: 34px; font-size: 18px; }
+  .rows-18 .tv-row { height: 26px; line-height: 26px; font-size: 15px; }
+  .cur-block { font-size: 26px; }
+}
+
+/* Harem yon oklari (dir.alis_dir / dir.satis_dir) */
+.tv-dir-up   { color: #2ecc71; font-size: 0.75em; vertical-align: middle; }
+.tv-dir-down { color: #e74c3c; font-size: 0.75em; vertical-align: middle; }

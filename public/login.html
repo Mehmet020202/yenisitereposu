@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giris - ALTUĞ KUYUMCULUK Yonetim</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="login-page">
+<div class="login-card">
+  <div class="login-brand">ALTUĞ KUYUMCULUK</div>
+  <div class="login-sub">Yonetim Paneli</div>
+  <form id="login-form" autocomplete="off">
+    <label>E-posta</label>
+    <input type="text" id="login-email" autocapitalize="off" spellcheck="false">
+    <label>&#350;ifre</label>
+    <input type="password" id="login-pass">
+    <div id="login-error" class="login-error"></div>
+    <button type="submit" id="login-btn">GIRI&#304; YAP</button>
+  </form>
+  <div class="login-hint">Kurulum: Firebase Console &rarr; Authentication &rarr; Email/Password
+  etkinlestirin ve yonetici kullanicisini olusturun.</div>
+</div>
+<!-- Firebase v8.10.1 TEK YEREL SDK (monolitik UMD). CDN ile karistirilmaz. -->
+<script src="js/lib/firebase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/price-validator.js"></script>
+<script src="js/price-engine.js"></script>
+<script src="js/price-formatter.js"></script>
+<script src="js/db.js"></script>
+<script>
+(function () {
+  "use strict";
+  function ready(fn) {
+    if (document.addEventListener) { document.addEventListener("DOMContentLoaded", fn); }
+    else { window.onload = fn; }
+  }
+  ready(function () {
+    var form = document.getElementById("login-form");
+    var errBox = document.getElementById("login-error");
+    var btn = document.getElementById("login-btn");
+    form.onsubmit = function (ev) {
+      ev.preventDefault();
+      errBox.innerHTML = "";
+      var email = document.getElementById("login-email").value;
+      var pass = document.getElementById("login-pass").value;
+      if (!email || !pass) {
+        errBox.innerHTML = "E-posta ve &scedil;ifre gerekli.";
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = "BA&#286;LANIYOR...";
+      try {
+        AppDb.login(email, pass, function () {
+          window.location.href = "admin.html";
+        }, function (err) {
+          btn.disabled = false;
+          btn.innerHTML = "GIRI&#304; YAP";
+          errBox.innerHTML = "Giri&#351; ba&#351sarisiz: " +
+            (err && err.message ? err.message : "kullanici adi/&#351;ifre hatali");
+        });
+      } catch (e) {
+        btn.disabled = false;
+        btn.innerHTML = "GIRI&#304; YAP";
+        errBox.innerHTML = "Sistem hatasi: " + e.message;
+      }
+      return false;
+    };
+  });
+})();
+</script>
+</body>
+</html>

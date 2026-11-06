@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!-- =====================================================================
+ ALTUG KUYUMCULUK - Harem Socket.IO CANLI BAGLANTI TESTI
+ Kullanici katkisi (orijinal kod bu haliyle korunmustur). Amac:
+ tarayicidan dogrudan Harem'e baglanip price_changed akisini gozle
+ dogrulamak. Sistemin bulut toplama hizmeti (cloud/price-ingestion)
+ ayni semayi kullanir; TV'deki yedek mod (config.allowBrowserFallback)
+ ise bu sayfadaki baglanti mantigini izler.
+ Yon bilgisi (dir.satis_dir: up/down) sisteme entegre edildi: TV'de
+ altin satirlarinda ve USD/EUR kutularinda ▲/▼ oklari gosterilir.
+===================================================================== -->
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Canlı Altın ve Döviz Takip</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 25px; width: 350px; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .data-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .data-row:last-child { border-bottom: none; }
+        .label { font-weight: 600; color: #34495e; }
+        .value { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #27ae60; font-size: 1.1em; }
+        .status { font-size: 12px; text-align: center; margin-top: 15px; color: #95a5a6; }
+        .up { color: #27ae60; }
+        .down { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Canlı Piyasalar</h2>
+    
+    <div class="data-row">
+        <span class="label">Has Altın (Satış)</span>
+        <span id="has-satis" class="value">Bağlanıyor...</span>
+    </div>
+    
+    <div class="data-row">
+        <span class="label">Dolar (USD/TRY)</span>
+        <span id="usd-satis" class="value">Bağlanıyor...</span>
+    </div>
+    
+    <div class="data-row">
+        <span class="label">Euro (EUR/TRY)</span>
+        <span id="eur-satis" class="value">Bağlanıyor...</span>
+    </div>
+
+    <div id="status" class="status">Sunucuya bağlanılıyor...</div>
+</div>
+
+<!-- Socket.io Kütüphanesi -->
+<script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+
+<script>
+    function startLiveTracking() {
+        const statusDiv = document.getElementById('status');
+        
+        // Harem Altın WebSocket Bağlantısı
+        const socket = io("wss://socket.haremaltin.com:443", {
+            transports: ["websocket"]
+        });
+
+        socket.on("connect", () => {
+            statusDiv.textContent = "Durum: Canlı Bağlantı Aktif";
+            statusDiv.style.color = "#27ae60";
+        });
+
+        socket.on("price_changed", (res) => {
+            const data = res.data;
+            if (!data) return;
+
+            // Verileri Güncelle
+            updatePrice('has-satis', data['ALTIN']);
+            updatePrice('usd-satis', data['USDTRY']);
+            updatePrice('eur-satis', data['EURTRY']);
+        });
+
+        function updatePrice(elementId, item) {
+            if (!item) return;
+            const el = document.getElementById(elementId);
+            const price = parseFloat(item.satis).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            
+            // Fiyat değiştiğinde görsel efekt (isteğe bağlı)
+            el.textContent = price + " TL";
+            
+            // Yön bilgisi (yukarı/aşağı)
+            if (item.dir && item.dir.satis_dir === "up") {
+                el.className = "value up";
+            } else if (item.dir && item.dir.satis_dir === "down") {
+                el.className = "value down";
+            }
+        }
+
+        socket.on("disconnect", () => {
+            statusDiv.textContent = "Bağlantı kesildi, tekrar deneniyor...";
+            statusDiv.style.color = "#e74c3c";
+        });
+    }
+
+    // Uygulamayı başlat
+    startLiveTracking();
+</script>
+
+</body>
+</html>

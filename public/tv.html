@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALTUĞ KUYUMCULUK - Güncel Altın Fiyatları</title>
+<link rel="stylesheet" href="css/tv.css">
+<!-- TASARIM 2 (Premium Yeşil): stiller yalniz #theme2-root / html.ui-theme-2
+     altinda gecerli; Tasarim 1 stilleriyle (tv.css) cakisma yok. -->
+<link rel="stylesheet" href="css/theme-2.css">
+</head>
+<body>
+<div class="user-dashboard" id="tv-dashboard">
+<div id="tv-root">
+
+  <!-- ============ UST BASLIK ============ -->
+  <div id="tv-header">
+    <div id="tv-brand">
+      <img id="tv-logo" alt="" style="display:none" onerror="this.style.display='none'">
+      <span class="dash-brand-badge" aria-hidden="true">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="#D4AF62" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="20" x2="6" y2="13"></line>
+          <line x1="12" y1="20" x2="12" y2="8"></line>
+          <line x1="18" y1="20" x2="18" y2="15"></line>
+        </svg>
+      </span>
+      <span class="dash-title-wrap">
+        <span id="tv-brand-name">ALTU&#286; KUYUMCULUK</span>
+        <span class="dash-title">G&#252;ncel Alt&#305;n Fiyatlar&#305;</span>
+        <span class="dash-subtitle">Canl&#305; ve Anl&#305;k Piyasa Verileri</span>
+      </span>
+    </div>
+
+    <div class="dash-meta">
+      <div id="tv-datetime">
+        <span id="tv-date">--.----.----</span>
+        <span id="tv-clock">--:--:--</span>
+      </div>
+      <div id="tv-live">
+        <span id="tv-live-dot" class="dot dot-gray"></span><span id="tv-live-text">BA&#286;LANIYOR...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ORTA: SOL F&#304;YAT TABLOSU + SA&#286; V&#304;TR&#304;N ============ -->
+  <div id="tv-main">
+    <div id="tv-products-panel">
+      <div id="tv-products-head">
+        <span class="tv-head-icon"></span>
+        <span id="tv-col-name">&#220;R&#220;N</span>
+        <span id="tv-col-buy">ALI&#350;</span>
+        <span id="tv-col-sell">SATI&#350;</span>
+        <span class="tv-head-dir"></span>
+      </div>
+      <div id="tv-products-body"><!-- satirlar js ile --></div>
+    </div>
+
+    <div id="tv-ads-panel">
+      <div id="tv-ad-frame">
+        <img id="tv-ad-img" src="" alt="" style="display:none">
+        <div id="tv-ad-text"></div>
+        <div id="tv-ad-default">
+          <span class="ad-gem" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#D4AF62" stroke-width="1.4" stroke-linejoin="round">
+              <path d="M6 3h12l3 5-9 12L3 8z"></path>
+              <path d="M3 8h18"></path>
+              <path d="M9 3l-2 5 5 12 5-12-2-5"></path>
+            </svg>
+          </span>
+          <div class="ad-gold-line"></div>
+          <div class="ad-title">ALTU&#286; KUYUMCULUK</div>
+          <div class="ad-sub">Zarafetin I&#351;&#305;lt&#305;s&#305;n&#305; Ke&#351;fedin</div>
+          <div class="ad-gold-line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ D&Ouml;V&#304;Z SER&#304;D&#304; ============ -->
+  <div id="tv-currency-box">
+    <div id="tv-usd" class="cur-block">
+      <span class="cur-name">USD</span>
+      <span class="cur-buy" data-cur="usd-buy">-</span>
+      <span class="cur-sell" data-cur="usd-sell">-</span>
+    </div>
+    <div id="tv-eur" class="cur-block">
+      <span class="cur-name">EUR</span>
+      <span class="cur-buy" data-cur="eur-buy">-</span>
+      <span class="cur-sell" data-cur="eur-sell">-</span>
+    </div>
+  </div>
+
+  <!-- ============ ALT: G&#304;VEN BLOKLARI + DURUM ============ -->
+  <div id="tv-footer">
+    <div class="dash-trust">
+      <div class="trust-item">
+        <span class="trust-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D4AF62" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"></path>
+            <path d="M9 12l2 2 4-4"></path>
+          </svg>
+        </span>
+        <span class="trust-text">
+          <span class="trust-title">G&#252;venilir Veri</span>
+          <span class="trust-desc">Do&#287;rudan canl&#305; piyasa verisi</span>
+        </span>
+      </div>
+
+      <div class="trust-item">
+        <span class="trust-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D4AF62" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 4 14 11 14 10 22 20 10 13 10 13 2"></polygon>
+          </svg>
+        </span>
+        <span class="trust-text">
+          <span class="trust-title">Anl&#305;k Güncelleme</span>
+          <span class="trust-desc">Veriler ba&#287;lant&#305; geldik&#231;e tazelenir</span>
+        </span>
+      </div>
+
+      <div class="trust-item">
+        <span class="trust-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D4AF62" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+            <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+          </svg>
+        </span>
+        <span class="trust-text">
+          <span class="trust-title">G&#252;venli Altyap&#305;</span>
+          <span class="trust-desc">G&#252;venlik kurallar&#305;yla korunan ekran</span>
+        </span>
+      </div>
+    </div>
+
+    <div id="tv-status-box">
+      <div><span class="lbl">Son G&#252;ncelleme:</span><span id="tv-updated">-</span></div>
+      <div id="tv-note" class="tv-note"></div>
+      <div class="tv-contact">
+        <div class="tv-contact-row"><span class="lbl">TEL:</span><span id="tv-phone">0543 240 52 02</span></div>
+        <div class="tv-contact-row"><span class="lbl">ADRES:</span><span id="tv-address">Atat&#252;rk Mah. Adeviye Bulvar&#305; No:50/D, Kahta <span class="tv-contact-note">&middot; Belediye soka&#287;&#305; d&#246;nmeden k&#246;&#351;e ba&#351;&#305;</span></span></div>
+        <a id="tv-whatsapp" class="tv-whatsapp" href="#" target="_blank" rel="noopener" style="display:none">
+          <svg class="wa-ico" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347M12.05 21.785h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.548 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+          <span>WhatsApp ile yaz</span>
+        </a>
+      </div>
+      <a id="tv-admin-link" class="tv-admin-link" href="login.html" title="Y&#246;netim paneli">&#183; Y&#246;netim</a>
+    </div>
+  </div>
+
+  <button id="tv-theme-toggle" class="tv-theme-toggle" type="button" title="Temay&#305; de&#287;i&#351;tir" aria-label="Temay&#305; de&#287;i&#351;tir" style="display:none">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+      <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"></path>
+    </svg>
+  </button>
+
+  <!-- ============ G&#220;NCEL DE&#286;&#304;L UYARISI ============ -->
+  <div id="tv-stale-bar" style="display:none">
+    F&#304;YATLAR G&#220;NCEL DE&#286;&#304;L &mdash; SON GE&#199;ERL&#304; VER&#304; G&#214;STER&#304;L&#304;YOR
+  </div>
+</div>
+</div>
+
+<!-- ============ TASARIM 2: PREMIUM YESIL (ayri DOM koku; ayni veri katmani) ============ -->
+<div id="theme2-root" style="display:none" aria-hidden="true">
+
+  <!-- YESIL BAND: marka alani + doviz kartlari tek gorsel blokta (masaustu/TV
+       genisliginde kartlar bandin icinde kalir, okunurluk bozulmaz) -->
+  <div id="t2-band">
+  <!-- UST MARKA ALANI (zeytin yeşili) -->
+  <header id="t2-header">
+    <button id="t2-menu-btn" type="button" aria-label="Menü">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
+    </button>
+    <div id="t2-brand">
+      <img id="t2-logo" alt="" style="display:none" onerror="this.style.display='none'">
+      <span id="t2-brand-name">ALTU&#286; KUYUMCULUK</span>
+      <span class="t2-brand-sub">G &#220; N C E L &nbsp; A L T I N &nbsp; F I Y A T L A R I</span>
+      <button id="t2-iban-btn" type="button" class="t2-iban-pill">IBAN&#39;lar&#305;m&#305;z</button>
+    </div>
+    <span id="t2-live" title="Canl&#305; veri ba&#287;lant&#305;s&#305;"><span id="t2-live-dot" class="t2-dot t2-dot-gray"></span><span id="t2-live-text">...</span></span>
+  </header>
+
+  <!-- DÖVİZ VE ONS ALANI (canl&#305; veri; örnek/sabit de&#287;er yok) -->
+  <section id="t2-ticker">
+    <div class="t2-cur-card" id="t2-usd">
+      <div class="t2-cur-name">USD/TRY</div>
+      <div class="t2-cur-row"><span class="t2-cur-lbl">Al&#305;&#351;</span><span class="t2-cur-buy" id="t2-usd-buy">-</span></div>
+      <div class="t2-cur-row"><span class="t2-cur-lbl">Sat&#305;&#351;</span><span class="t2-cur-sell" id="t2-usd-sell">-</span></div>
+    </div>
+    <div class="t2-cur-card" id="t2-eur">
+      <div class="t2-cur-name">EUR/TRY</div>
+      <div class="t2-cur-row"><span class="t2-cur-lbl">Al&#305;&#351;</span><span class="t2-cur-buy" id="t2-eur-buy">-</span></div>
+      <div class="t2-cur-row"><span class="t2-cur-lbl">Sat&#305;&#351;</span><span class="t2-cur-sell" id="t2-eur-sell">-</span></div>
+    </div>
+    <div class="t2-cur-card" id="t2-ons">
+      <div class="t2-cur-name">ONS/USD</div>
+      <div class="t2-cur-row"><span class="t2-cur-lbl">Al&#305;&#351;</span><span class="t2-cur-buy" id="t2-ons-buy">-</span></div>
+      <div class="t2-cur-row"><span class="t2-cur-lbl">Sat&#305;&#351;</span><span class="t2-cur-sell" id="t2-ons-sell">-</span></div>
+    </div>
+  </section>
+  </div><!-- /#t2-band -->
+
+  <!-- ICEERIK SARMALAYICISI: masaustu/tablette ortalanir; TV'de esnek kolon
+       (tablo basliklari sarmalayici uzerinden ortalanir, flex ogeleri ezilmez) -->
+  <div id="t2-content-wrap">
+  <!-- ÜRÜN NAVİGASYONU -->
+  <nav id="t2-toolbar">
+    <button class="t2-tab t2-tab-active" type="button" data-tab="all">Tüm Fiyatlar</button>
+    <button class="t2-tab" type="button" data-tab="fav"><span aria-hidden="true">&#9733;</span> Favorilerim (<span id="t2-fav-count">0</span>)</button>
+    <button class="t2-tab" type="button" id="t2-share-btn"><span aria-hidden="true">&#8599;</span> Payla&#351;</button>
+    <button class="t2-tab t2-tab-icon" type="button" id="t2-search-btn" aria-label="Ara">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+    </button>
+  </nav>
+  <div id="t2-search-row" style="display:none">
+    <input id="t2-search-input" type="text" placeholder="&#220;r&#252;n ara..." autocomplete="off">
+  </div>
+
+  <!-- ALTIN F&#304;YAT TABLOSU -->
+  <div id="t2-table-head">
+    <span class="t2-th-name">&#220;R&#220;N</span>
+    <span class="t2-th-buy" id="t2-th-buy">ALI&#350;</span>
+    <span class="t2-th-sell" id="t2-th-sell">SATI&#350;</span>
+  </div>
+  <div id="t2-products-body"></div>
+
+  <!-- YAN PANEL (sadece zengin masaustunde gorunur): GERCEK cevirici.
+       Sonuc canli HAS (24K gram) fiyatiyla hesaplanir -> uydurma veri degil. -->
+  <aside id="t2-sidebar">
+    <div id="t2-converter" class="t2-panel">
+      <div class="t2-panel-title">&#199;evirici <button type="button" id="t2-conv-close" class="t2-conv-close" aria-label="Kapat">&#215;</button></div>
+      <div class="t2-conv-row">
+        <input id="t2-conv-amount" type="text" inputmode="decimal" autocomplete="off" value="1">
+        <select id="t2-conv-unit"></select>
+      </div>
+      <div id="t2-conv-result" class="t2-conv-result"></div>
+      <div class="t2-conv-hint">Sonu&#231;, se&#231;ili &#252;r&#252;n&#252;n tabloda g&#246;r&#252;nen g&#252;ncel fiyat&#305; ile hesaplan&#305;r.</div>
+    </div>
+  </aside>
+
+  <!-- ALT BILGI: son guncelleme + not + guncel degil uyarisi -->
+  <footer id="t2-footer">
+    <div id="t2-updated-row">Son G&#252;ncelleme: <span id="t2-updated">-</span></div>
+    <div id="t2-note" class="t2-note"></div>
+    <div id="t2-stale-bar" style="display:none">F&#304;YATLAR G&#220;NCEL DE&#286;&#304;L &mdash; SON GE&#199;ERL&#304; VER&#304; G&#214;STER&#304;L&#304;YOR</div>
+  </footer>
+  </div><!-- /#t2-content-wrap -->
+
+  <!-- MOBIL ALT MENU (TV/masaustunde gizlenir; Cevirici ve Hesabim
+       mevcut altyapida karsiligi yok -> sahte is yapmaz, bilgi verir) -->
+  <nav id="t2-bottom-nav">
+    <button type="button" class="t2-nav-active" data-nav="gold">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 18h6l-1-4H3z"></path><path d="M10 18h6l-1-4h-6z"></path><path d="M7 10h6l3 4H10z" opacity="0.85"></path></svg>
+      <span>Alt&#305;n</span>
+    </button>
+    <button type="button" data-nav="converter">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8h13l-3-3"></path><path d="M20 16H7l3 3"></path></svg>
+      <span>&#199;evirici</span>
+    </button>
+    <button type="button" data-nav="contact">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg>
+      <span>&#304;letişim</span>
+    </button>
+    <button type="button" data-nav="account">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"></path></svg>
+      <span>Hesab&#305;m</span>
+    </button>
+  </nav>
+
+  <!-- ILETISIM PANELI (alt menuden acilir; mevcut magaza bilgileri kullanilir) -->
+  <div id="t2-contact-sheet" style="display:none">
+    <div id="t2-contact-box">
+      <div class="t2-contact-title">&#304;letişim</div>
+      <div class="t2-contact-row"><span class="t2-lbl">TEL:</span><span id="t2-phone">0543 240 52 02</span></div>
+      <div class="t2-contact-row"><span class="t2-lbl">ADRES:</span><span id="t2-address">Atat&#252;rk Mah. Adeviye Bulvar&#305; No:50/D, Kahta</span></div>
+      <a id="t2-wa-link" class="t2-wa-btn" href="#" target="_blank" rel="noopener" style="display:none">WhatsApp ile yaz</a>
+      <button type="button" id="t2-contact-close">KAPAT</button>
+    </div>
+  </div>
+
+  <!-- IBAN PANELI (referans sitedeki "IBAN'larimiz"; veriler settings.ibanList,
+       yoksa tema varsayilanlari gosterilir; satira dokununca IBAN panoya kopyalanir) -->
+  <div id="t2-iban-sheet" style="display:none">
+    <div id="t2-iban-box">
+      <div class="t2-iban-title">IBAN Bilgilerimiz</div>
+      <div id="t2-iban-list"></div>
+      <button type="button" id="t2-iban-close">KAPAT</button>
+    </div>
+  </div>
+
+  <!-- SABIT WHATSAPP BUTONU (mevcut settings.whatsappNumber kullanilir) -->
+  <a id="t2-whatsapp" class="t2-whatsapp" href="#" target="_blank" rel="noopener" style="display:none" aria-label="WhatsApp ile yaz">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347M12.05 21.785h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.548 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+  </a>
+
+  <!-- MENU CEKMECESI (hamburger: yalnizca mevcut sistemde gercek karsiligi
+       olan baglantilar listelenir) -->
+  <div id="t2-drawer" style="display:none">
+    <div id="t2-drawer-box">
+      <div class="t2-drawer-title">ALTU&#286; KUYUMCULUK</div>
+      <a href="#" id="t2-drawer-contact">&#304;letişim bilgileri</a>
+      <a href="#" id="t2-drawer-fav">Favorilerim</a>
+      <a href="login.html" id="t2-drawer-admin" title="Y&#246;netim paneli">Y&#246;netim</a>
+      <button type="button" id="t2-drawer-close">KAPAT</button>
+    </div>
+  </div>
+
+  <div id="t2-toast"></div>
+</div>
+
+<!-- ONIZLEME UYARISI: yonetim panelinden onizleme acikken gosterilir;
+     aktif yayindaki tasarim bu modda DEGISMEZ (TALIMAT bolum 5). -->
+<div id="ui-preview-bar" style="display:none">&#214;N&#304;ZLEME MODU &mdash; ger&#231;ek veriyle &#231;al&#305;&#351;&#305;yor, yay&#305;nlanan tasar&#305;m de&#287;i&#351;medi</div>
+
+<!-- TV okumalari Firebase REST (.json) + Harem Socket.IO ile yapilir; agir/eski
+     v8 SDK bu sayfada ARTIK YUKLENMEZ: (1) tarayicidaki SDK snapshot cokmesinden
+     (isEmpty) bagimsiz, (2) daha hizli acilis. Yonetim paneli (admin.html) SDK'yi
+     yazma/giris icin ayrica kullanir; oraya dokunulmadi. -->
+<script src="js/config.js"></script>
+<script src="js/price-validator.js"></script>
+<script src="js/price-engine.js"></script>
+<script src="js/price-formatter.js"></script>
+<script src="js/db.js"></script>
+<!-- Tasarim katmani (tek veri kaynagi tv.js'de kalir; Tema 2 ayni state'i kullanir) -->
+<script src="js/theme-registry.js"></script>
+<script src="js/theme-manager.js"></script>
+<script src="js/themes/theme-2.js"></script>
+<script src="js/tv.js"></script>
+</body>
+</html>

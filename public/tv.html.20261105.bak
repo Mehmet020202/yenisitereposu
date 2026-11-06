@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>ALTUĞ KUYUMCULUK - Canli Fiyat Panosu</title>
+<link rel="stylesheet" href="css/tv.css">
+</head>
+<body>
+<div id="tv-root">
+
+  <!-- UST BOLUM -->
+  <div id="tv-header">
+    <div id="tv-brand">
+      <img id="tv-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
+      <span id="tv-brand-name">ALTUĞ KUYUMCULUK</span>
+    </div>
+    <div id="tv-datetime">
+      <span id="tv-date">--.----.----</span>
+      <span id="tv-clock">--:--:--</span>
+    </div>
+    <div id="tv-live">
+      <span id="tv-live-dot" class="dot dot-gray"></span>
+      <span id="tv-live-text">BA&#286;LANIYOR...</span>
+    </div>
+  </div>
+
+  <!-- ORTA: SOL ÜRÜNLER + SAĞ REKLAM -->
+  <div id="tv-main">
+    <div id="tv-products-panel">
+      <div id="tv-products-head">
+        <span id="tv-col-name">ÜRÜN</span>
+        <span id="tv-col-buy">ALIŞ</span>
+        <span id="tv-col-sell">SATIŞ</span>
+      </div>
+      <div id="tv-products-body"><!-- satirlar js ile --></div>
+    </div>
+    <div id="tv-ads-panel">
+      <div id="tv-ad-frame">
+        <img id="tv-ad-img" src="" alt="" style="display:none">
+        <div id="tv-ad-text"></div>
+        <div id="tv-ad-default">
+          <div class="ad-gold-line"></div>
+          <div class="ad-title">ALTUĞ KUYUMCULUK</div>
+          <div class="ad-sub">G&#252;venilir &middot; Taraf&#305;s&#305;z &middot; &Ccedil;eyrek As&#305;rdan Bu Yana</div>
+          <div class="ad-gold-line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALT BOLUM: D&Ouml;V&#304;Z + DURUM -->
+  <div id="tv-footer">
+    <div id="tv-currency-box">
+      <div id="tv-usd" class="cur-block">
+        <span class="cur-name">USD</span>
+        <span class="cur-buy" data-cur="usd-buy">-</span>
+        <span class="cur-sell" data-cur="usd-sell">-</span>
+      </div>
+      <div id="tv-eur" class="cur-block">
+        <span class="cur-name">EUR</span>
+        <span class="cur-buy" data-cur="eur-buy">-</span>
+        <span class="cur-sell" data-cur="eur-sell">-</span>
+      </div>
+    </div>
+    <div id="tv-status-box">
+      <div>Son G&#252;ncelleme: <span id="tv-updated">-</span></div>
+      <div id="tv-note" class="tv-note"></div>
+    </div>
+  </div>
+
+  <!-- G&Uuml;NCEL DE&#284;&#304;L UYARISI -->
+  <div id="tv-stale-bar" style="display:none">
+    F&#304;YATLAR G&Uuml;NCEL DE&#284;&#304;L &mdash; SON GE&Ccedil;ERL&#304; VER&#304; G&Ouml;STER&#304;L&#304;YOR
+  </div>
+</div>
+
+<!-- Firebase v8.10.1 TEK YEREL SDK (monolitik UMD: app+auth+database+storage).
+     CDN Zinciri BURADA KULLANILMAZ: iki ayri SDK yuklenirse (compat + monolit)
+     ayni sayfada veritabanı okumalari bozulur (canli testle goruldu).
+     Guncellemek istenirse: node tools/get-sdk.js -->
+<script src="js/lib/firebase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/price-validator.js"></script>
+<script src="js/price-engine.js"></script>
+<script src="js/price-formatter.js"></script>
+<script src="js/db.js"></script>
+<script src="js/tv.js"></script>
+</body>
+</html>

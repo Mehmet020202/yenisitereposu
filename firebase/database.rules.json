@@ -1,0 +1,71 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "settings": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()",
+      "usdShowMode": { ".validate": "newData.isString() && newData.val().matches(/^(buy|sell|both)$/)" },
+      "eurShowMode": { ".validate": "newData.isString() && newData.val().matches(/^(buy|sell|both)$/)" },
+      "goldDisplayMode": { ".validate": "newData.isString() && newData.val().matches(/^(buy|sell|both)$/)" },
+      "activeUserTheme": { ".validate": "newData.isString() && newData.val().matches(/^theme-[0-9]+$/)" },
+      "prevUserTheme": { ".validate": "newData.isString() && newData.val().matches(/^theme-[0-9]+$/)" }
+    },
+
+    "marketPrices": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == 'ingest-service'",
+      ".indexOn": ["updatedAt"]
+    },
+
+    "currencyAdjustments": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()"
+    },
+
+    "products": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()",
+      "$productId": {
+        ".validate": "newData.hasChildren(['name', 'buyMultiplier', 'sellMultiplier'])",
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
+        "buyMultiplier": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() < 1000" },
+        "sellMultiplier": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() < 1000" },
+        "order": { ".validate": "!newData.exists() || newData.isNumber()" },
+        "archived": { ".validate": "!newData.exists() || newData.isBoolean()" }
+      }
+    },
+
+    "advertisements": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()"
+    },
+
+    "branding": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()"
+    },
+
+    "connectionStatus": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == 'ingest-service'"
+    },
+
+    "admins": {
+      ".read": "auth != null && auth.uid == data.child('rootAdminUid').val()",
+      ".write": "auth != null && auth.uid == data.child('rootAdminUid').val()"
+    },
+
+    "operationLogs": {
+      ".read": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()",
+      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()",
+      ".indexOn": ["at"]
+    },
+
+    "init": {
+      ".read": true,
+      ".write": "auth == null && !data.exists()"
+    }
+  }
+}

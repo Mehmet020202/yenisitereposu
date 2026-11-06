@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>SDK Diagnostic</title>
+</head>
+<body>
+<h3>Firebase SDK Diagnostik</h3>
+<pre id="out" style="white-space:pre-wrap;font-size:13px"></pre>
+<script src="js/lib/firebase.js"></script>
+<script src="js/config.js"></script>
+<script>
+(function () {
+  var outEl = document.getElementById("out");
+  function log() {
+    var s = Array.prototype.slice.call(arguments).join(" ");
+    outEl.textContent += s + "\n";
+    try { console.log(s); } catch (e) {}
+  }
+  window.onerror = function (m, u, l, c, err) {
+    log("[window.onerror] " + m + " @" + l + ":" + c + (err && err.stack ? ("\nSTACK: " + err.stack) : ""));
+  };
+
+  /* 1) Motor yetenek matrisi */
+  function feat(name, fn) { var ok = false; try { ok = !!fn(); } catch (e) { ok = false; } log("feat " + name + " = " + ok); }
+  log("UA = " + navigator.userAgent);
+  feat("Promise", function () { return typeof Promise === "function"; });
+  feat("Symbol", function () { return typeof Symbol === "function"; });
+  feat("Proxy", function () { return typeof Proxy === "function"; });
+  feat("Reflect", function () { return typeof Reflect === "function"; });
+  feat("WeakMap", function () { return typeof WeakMap === "function"; });
+  feat("Object.assign", function () { return typeof Object.assign === "function"; });
+  feat("Array.from", function () { return typeof Array.from === "function"; });
+  feat("arrow+const", function () { return (function () { var f = eval("(x)=>x+1"); return f(1) === 2; })(); });
+  feat("template literal", function () { return eval("`a${1+1}b`") === "a2b"; });
+  feat("global firebase(lower)", function () { return typeof window.firebase !== "undefined"; });
+  feat("global Firebase(CAPITAL)", function () { return typeof window.Firebase !== "undefined"; });
+  log("firebase.SDK_VERSION = " + (window.firebase && window.firebase.SDK_VERSION));
+  log("has firebase.database = " + !!(window.firebase && window.firebase.database));
+  log("has firebase.auth = " + !!(window.firebase && window.firebase.auth));
+
+  /* 2) Izole okuma denemeleri */
+  var cfg = (window.APP_CONFIG && window.APP_CONFIG.firebase) || {};
+  log("databaseURL = " + cfg.databaseURL);
+  try {
+    if (!window.firebase.apps.length) { window.firebase.initializeApp(cfg); }
+    var db = window.firebase.database();
+    log("db ref olusturuldu.");
+
+    /* 2a) leaf okuma (beklenen: CALISIR) */
+    db.ref("settings/showUsd").once("value").then(function (s) {
+      log("LEAF settings/showUsd = " + JSON.stringify(s.val()));
+    }, function (e) { log("LEAF HATA: " + e.message); });
+
+    /* 2b) cok-ocuklu obje okuma (beklenen: COKERDI) */
+    try {
+      db.ref("settings").once("value").then(function (s) {
+        var v = s.val();
+        log("OBJ settings OK, anahtar sayisi = " + (v ? Object.keys(v).length : "null"));
+      }, function (e) { log("OBJ settings REJECT: " + (e && e.message)); });
+    } catch (e) { log("OBJ settings SYNC THROW: " + e.message + "\n" + (e.stack||"")); }
+
+    /* 2c) snapshot yerine .child ile tek tek okuma (fallback yolu) */
+    db.ref("products").once("value").then(function (s) {
+      log("OBJ products val() = " + (s.val() ? Object.keys(s.val()).length + " urun" : "null"));
+    }, function (e) { log("OBJ products REJECT: " + (e && e.message)); });
+
+  } catch (e) {
+    log("INIT THROW: " + e.message + "\n" + (e.stack || ""));
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,966 @@
+/* =====================================================================
+ * ALTUG KUYUMCULUK - Premium Luxury Gold Dashboard (kullanici ekrani)
+ * Hedef: 1920x1080 TV + masaustu + mobil (320px+).
+ * ESKI MOTOR KURALLARI (Tv Toshiba/gomulu Chromium):
+ *  - CSS degiskeni (var(--x)), clamp(), grid-gap KULLANILMAZ.
+ *  - Flexbox kullanilir (eski Chromium destekler); kritik yerlerde
+ *    -webkit- onekli dusunulur.
+ *  - Sayfa hic yenilenmez; tv.js yalnizca degisen alanlari gunceller.
+ * Bu dosya YALNIZ kullanic ekranini (tv.html) stil eder. Yonetim paneli
+ * (admin.css) bundan bagimsizdir ve degistirilmemistir.
+ * ===================================================================== */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050506;
+  color: #F5F2EB;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Vignette arka plan: merkezde hafisi sicak, kenarlarda siyah */
+.user-dashboard {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 26px 30px;
+  background-color: #050506;
+  background-image: radial-gradient(120% 90% at 50% 0%, #1a1408 0%, #0b0b0d 46%, #050506 100%);
+  -webkit-background-size: cover;
+  background-size: cover;
+}
+
+/* ---------------- DIS KART ---------------- */
+#tv-root {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-width: 1720px;
+  margin: 0 auto;
+  padding: 26px 34px 20px;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  background-color: #101013;
+  background-image: linear-gradient(180deg, #17171b 0%, #0e0e11 100%);
+  border: 1px solid rgba(212, 175, 98, 0.28);
+  -webkit-border-radius: 20px;
+  border-radius: 20px;
+  -webkit-box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65),
+                      inset 0 1px 0 rgba(242, 213, 138, 0.10);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65),
+              inset 0 1px 0 rgba(242, 213, 138, 0.10);
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  -webkit-background-clip: padding-box;
+}
+
+/* ================= UST BASLIK ================= */
+#tv-header {
+  position: relative;
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  justify-content: space-between;
+  min-height: 96px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(212, 175, 98, 0.20);
+}
+
+/* Sol: logo ikon + baslik + alt baslik */
+#tv-brand {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+}
+#tv-logo {
+  max-height: 58px;
+  margin-right: 18px;
+  vertical-align: middle;
+}
+/* Logo yokken/brand yokken altin dairesel ikon (CSS ile) */
+.dash-brand-badge {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  width: 58px; height: 58px;
+  margin-right: 18px;
+  -webkit-border-radius: 50%;
+  border-radius: 50%;
+  background-color: #1c1710;
+  background-image: linear-gradient(145deg, #3a2f16 0%, #1a160e 100%);
+  border: 1px solid rgba(212, 175, 98, 0.45);
+  text-align: center;
+  line-height: 58px;
+}
+.dash-brand-badge .glyph {
+  display: inline-block;
+  width: 26px; height: 26px;
+  vertical-align: middle;
+}
+.dash-title-wrap { display: block; }
+#tv-brand-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: #A6A29A;
+  text-transform: uppercase;
+}
+.dash-title {
+  display: block;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #E7C878;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.dash-subtitle {
+  display: block;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: #8f8b83;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Sag: tarih/saat + canli durus + son guncelleme */
+.dash-meta {
+  text-align: right;
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+}
+#tv-datetime {
+  display: block;
+  font-size: 20px;
+  color: #d8d4cc;
+  letter-spacing: 1px;
+}
+#tv-date { margin-right: 12px; }
+#tv-clock {
+  display: inline-block;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 30px;
+  font-weight: 700;
+  color: #F5F2EB;
+  letter-spacing: 2px;
+}
+#tv-live {
+  display: block;
+  margin-top: 8px;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: #A6A29A;
+  text-transform: uppercase;
+}
+.dot {
+  display: inline-block;
+  width: 12px; height: 12px;
+  -webkit-border-radius: 50%;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.dot-green { background: #28C76F; -webkit-box-shadow: 0 0 10px rgba(40,199,111,0.7); box-shadow: 0 0 10px rgba(40,199,111,0.7); }
+.dot-amber { background: #F2A93B; -webkit-box-shadow: 0 0 8px rgba(242,169,59,0.55); box-shadow: 0 0 8px rgba(242,169,59,0.55); }
+.dot-red   { background: #EA5455; }
+.dot-gray  { background: #6b6b6b; }
+/* yesil canli nokta nazik nabiz animasyonu */
+.dot-green { -webkit-animation: livePulse 2.4s ease-in-out infinite; animation: livePulse 2.4s ease-in-out infinite; }
+@-webkit-keyframes livePulse { 0%,100%{opacity:1;} 50%{opacity:.55;} }
+@keyframes livePulse { 0%,100%{opacity:1;} 50%{opacity:.55;} }
+
+/* ================= ORTA: URUNLER + VITRIN ================= */
+#tv-main {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-flex: 1;
+  flex: 1 1 auto;
+  -webkit-box-align: stretch;
+  align-items: stretch;
+  min-height: 0;
+  margin-top: 18px;
+}
+#tv-products-panel {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  flex-direction: column;
+  -webkit-box-flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 18px 0;
+  overflow: hidden;
+}
+#tv-products-head {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  padding: 8px 14px 12px;
+  font-size: 15px;
+  letter-spacing: 3px;
+  color: #9a968d;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(212, 175, 98, 0.18);
+}
+/* Baslik hucre genislikleri satirlarla (ikon+ad+alis+satis+yon) hizaali */
+.tv-head-icon { -webkit-box-flex: 0; flex: 0 0 auto; width: 62px; }
+.tv-head-dir  { -webkit-box-flex: 0; flex: 0 0 auto; width: 34px; }
+#tv-col-name { -webkit-box-flex: 1; flex: 1 1 auto; min-width: 0; }
+#tv-col-buy, #tv-col-sell { -webkit-box-flex: 0; flex: 0 0 auto; width: 22%; text-align: right; }
+
+#tv-products-body {
+  display: block;
+  -webkit-box-flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+/* Urun listesi kaydirma cubugu: ince, koyu temaya uyumlu */
+#tv-products-body::-webkit-scrollbar { width: 6px; }
+#tv-products-body::-webkit-scrollbar-track { background: transparent; }
+#tv-products-body::-webkit-scrollbar-thumb { background: rgba(212,175,98,0.25); -webkit-border-radius: 3px; border-radius: 3px; }
+
+/* --- URUN SATIRI (yuvarlak kart) --- */
+.tv-row {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  padding: 0 14px;
+  margin-top: 10px;
+  background-color: #16161a;
+  background-image: linear-gradient(180deg, #1b1b20 0%, #141418 100%);
+  border: 1px solid rgba(212, 175, 98, 0.10);
+  -webkit-border-radius: 12px;
+  border-radius: 12px;
+  -webkit-transition: border-color .25s ease, -webkit-transform .25s ease, box-shadow .25s ease;
+  transition: border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+}
+.tv-row:hover {
+  border-color: rgba(212, 175, 98, 0.45);
+  -webkit-transform: translateY(-1px);
+  transform: translateY(-1px);
+  -webkit-box-shadow: 0 8px 22px rgba(0,0,0,0.45), 0 0 18px rgba(212,175,98,0.10);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.45), 0 0 18px rgba(212,175,98,0.10);
+}
+
+/* ikon hucre */
+.tv-cell-icon {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  width: 46px; height: 46px;
+  margin-right: 16px;
+  -webkit-border-radius: 50%;
+  border-radius: 50%;
+  background-color: #201a10;
+  background-image: linear-gradient(145deg, #3d3116 0%, #1a160e 100%);
+  border: 1px solid rgba(212, 175, 98, 0.40);
+  text-align: center;
+  line-height: 46px;
+}
+.tv-cell-icon .p-ico { display: inline-block; width: 24px; height: 24px; vertical-align: middle; }
+
+/* ad hucre */
+.tv-cell-name {
+  -webkit-box-flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #F5F2EB;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* fiyat hucreleri - monospace, basamak hizaali */
+.tv-cell-price {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  width: 22%;
+  text-align: right;
+  font-family: "Consolas", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+.tv-buy  { color: #c4c0b8; font-weight: 600; }
+.tv-sell { color: #E7C878; font-weight: 700; }
+
+/* yon oku hucre */
+.tv-cell-dir {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  width: 34px;
+  text-align: right;
+  font-size: 1.05em;
+}
+.tv-dir-up   { color: #28C76F; }
+.tv-dir-down { color: #EA5455; }
+
+/* tek mod (sadece alis veya sadece satis) - fiyat hucreleri genisler */
+.tv-row-wide .tv-cell-price { width: 34%; }
+
+/* Satir sayisina gore otomatik boyut (ekrana sigar) */
+.rows-8  .tv-row { height: 74px; font-size: 30px; }
+.rows-11 .tv-row { height: 60px; font-size: 25px; }
+.rows-14 .tv-row { height: 48px; font-size: 20px; }
+.rows-18 .tv-row { height: 38px; font-size: 16px; }
+.rows-8  .tv-cell-icon { width: 50px; height: 50px; line-height: 50px; }
+.rows-18 .tv-cell-icon { width: 34px; height: 34px; line-height: 34px; }
+.rows-18 .tv-cell-icon .p-ico { width: 18px; height: 18px; }
+
+/* --- SAAG VITRIN / REKLAM --- */
+#tv-ads-panel {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  width: 34%;
+  min-width: 260px;
+  margin-left: 22px;
+}
+#tv-ad-frame {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-box-pack: center;
+  -webkit-box-align: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  padding: 16px 22px;
+  text-align: center;
+  overflow: hidden;
+  background-color: #14110a;
+  background-image: radial-gradient(120% 80% at 50% 0%, #241c0c 0%, #121007 55%, #0c0a06 100%);
+  border: 1px solid rgba(212, 175, 98, 0.30);
+  -webkit-border-radius: 16px;
+  border-radius: 16px;
+  -webkit-box-shadow: inset 0 1px 0 rgba(242,213,138,0.10);
+  box-shadow: inset 0 1px 0 rgba(242,213,138,0.10);
+}
+#tv-ad-img {
+  max-width: 100%;
+  max-height: 62%;
+  margin-top: 8px;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+}
+#tv-ad-text { font-size: 22px; padding: 8px 6px; }
+.ad-h { color: #E7C878; font-weight: 700; font-size: 28px; letter-spacing: 1px; padding: 6px; }
+.ad-p { color: #d8d4cc; font-size: 18px; padding: 4px 10px; }
+
+/* varsayilan vitrin (gercek reklam yoksa) - markaya ozel, sahte buton YOK */
+#tv-ad-default { width: 100%; }
+.ad-gem { display: inline-block; width: 34px; height: 34px; margin-bottom: 8px; opacity: .9; }
+.ad-gold-line {
+  width: 58%;
+  height: 1px;
+  margin: 12px auto;
+  background-image: linear-gradient(90deg, rgba(212,175,98,0) 0%, rgba(212,175,98,0.7) 50%, rgba(212,175,98,0) 100%);
+}
+.ad-title { font-size: 24px; color: #E7C878; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1.15; }
+.ad-sub { font-size: 15px; color: #b7b3ab; margin-top: 8px; letter-spacing: 1px; }
+
+/* ================= D&Ouml;V&Iacute;Z SERIDI ================= */
+#tv-currency-box {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 18px;
+  background-color: #131316;
+  border: 1px solid rgba(212, 175, 98, 0.14);
+  -webkit-border-radius: 12px;
+  border-radius: 12px;
+}
+.cur-block {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  margin-right: 46px;
+  font-size: 22px;
+}
+.cur-name {
+  color: #E7C878;
+  font-weight: 700;
+  margin-right: 18px;
+  padding: 3px 12px;
+  border: 1px solid rgba(212, 175, 98, 0.45);
+  -webkit-border-radius: 6px;
+  border-radius: 6px;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+.cur-buy  { color: #c4c0b8; font-weight: 600; margin-right: 20px; font-family: "Consolas", "Courier New", monospace; }
+.cur-sell { color: #E7C878; font-weight: 700; margin-right: 20px; font-family: "Consolas", "Courier New", monospace; }
+
+/* ================= ALT: G&Uuml;VEN BLOKLARI + DURUM ================= */
+#tv-footer {
+  position: relative;
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(212, 175, 98, 0.20);
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  justify-content: space-between;
+}
+.dash-trust { display: -webkit-box; display: flex; -webkit-box-flex: 1; flex: 1 1 auto; }
+.trust-item {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  margin-right: 40px;
+}
+.trust-icon {
+  display: inline-block;
+  width: 30px; height: 30px;
+  margin-right: 12px;
+  vertical-align: middle;
+  color: #D4AF62;
+}
+.trust-icon svg { width: 30px; height: 30px; display: block; }
+.trust-text { display: block; }
+.trust-title { font-size: 15px; color: #E7C878; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.trust-desc  { font-size: 13px; color: #8f8b83; margin-top: 2px; }
+
+#tv-status-box {
+  -webkit-box-flex: 0;
+  flex: 0 0 auto;
+  text-align: right;
+  font-size: 14px;
+  color: #9a968d;
+}
+#tv-status-box .lbl { color: #7f7c75; margin-right: 6px; }
+.tv-note { color: #b7b3ab; font-size: 14px; margin-top: 6px; font-style: italic; }
+/* Iletisim seridi: telefon + adres (sag hizali, premium gorunum) */
+.tv-contact { margin-top: 7px; line-height: 1.4; }
+.tv-contact-row { color: #c9c4ba; font-size: 15px; }
+.tv-contact-row .lbl { color: #7f7c75; margin-right: 6px; }
+.tv-contact-row #tv-phone { color: #E7C878; font-weight: 700; letter-spacing: 1px; }
+.tv-contact-note { color: #8f8b83; font-size: 13px; font-style: italic; }
+/* Kucuk, soluk yonetim linki (gercek fonksiyonel link; musteride göze batmaz) */
+.tv-admin-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: #8f8b83;
+  text-decoration: none;
+  border: 1px solid rgba(212,175,98,0.18);
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+.tv-admin-link:hover { color: #D4AF62; border-color: rgba(212,175,98,0.5); }
+
+/* WhatsApp butonu (iletisim seridinde; yesil vurgu, gercek wa.me linki) */
+.tv-whatsapp {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 14px;
+  font-size: 14px;
+  letter-spacing: .3px;
+  color: #E7C878;
+  background-color: rgba(37, 211, 102, 0.14);
+  border: 1px solid rgba(37, 211, 102, 0.45);
+  -webkit-border-radius: 20px;
+  border-radius: 20px;
+  text-decoration: none;
+}
+.tv-whatsapp .wa-ico { vertical-align: -4px; margin-right: 7px; }
+.tv-whatsapp:hover { background-color: rgba(37, 211, 102, 0.26); }
+
+/* Sag-alt tema degistirme butonu (silik daire; uzerine gelince belirginlesir) */
+.tv-theme-toggle {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
+  z-index: 40;
+  width: 36px; height: 36px;
+  padding: 0;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #b7b3ab;
+  background-color: rgba(20, 18, 12, 0.55);
+  border: 1px solid rgba(212, 175, 98, 0.30);
+  -webkit-border-radius: 50%;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+.tv-theme-toggle:hover { opacity: 1; }
+.tv-theme-toggle svg { display: block; }
+
+/* ================= G&Uuml;NCEL DE&#284;&#304;L UYARISI ================= */
+#tv-stale-bar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background-color: #7d2727;
+  background-image: linear-gradient(180deg, #8b2e2e 0%, #6f2222 100%);
+  color: #ffeaea;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 9px 0;
+  -webkit-border-radius: 0 0 20px 20px;
+  border-radius: 0 0 20px 20px;
+}
+
+/* ================= FIYAT DEGISIMI KISA ANIMASYONU ================= */
+.price-flash-up   { -webkit-animation: flashUp .9s ease-out; animation: flashUp .9s ease-out; }
+.price-flash-down { -webkit-animation: flashDown .9s ease-out; animation: flashDown .9s ease-out; }
+@-webkit-keyframes flashUp   { 0%{background-color:rgba(40,199,111,.28);} 100%{background-color:transparent;} }
+@keyframes flashUp   { 0%{background-color:rgba(40,199,111,.28);} 100%{background-color:transparent;} }
+@-webkit-keyframes flashDown { 0%{background-color:rgba(234,84,85,.28);} 100%{background-color:transparent;} }
+@keyframes flashDown { 0%{background-color:rgba(234,84,85,.28);} 100%{background-color:transparent;} }
+
+/* ================= HAREKET AZALTMA TERCIHI ================= */
+@media (prefers-reduced-motion: reduce) {
+  .tv-row, .dash-title, .dot-green, .price-flash-up, .price-flash-down {
+    -webkit-animation: none !important;
+    animation: none !important;
+    -webkit-transition: none !important;
+    transition: none !important;
+  }
+}
+
+/* ================= TABLET + DAR EKRAN (<=1180px) =================
+ * Bu aralikta fiyat metinleri tek satira sigmaz (olculerle dogrulandi):
+ * kartlar iki satira iner: 1. satir ikon+ad, 2. satir ALIS / SATIS + yon.
+ * Fiyat hucreleri icerige gore genisler + nowrap -> sayilar sarip ust
+ * uste binmez. Basliktaki ALIS/SATIS kolonlari hizayi bozmasin gizlenir.
+ * ESKI MOTOR: yalniz flex-wrap + nowrap (eski Chromium destekler). */
+@media (max-width: 1180px) {
+  .tv-row {
+    flex-wrap: wrap;
+    height: auto !important;
+    min-height: 44px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .rows-8 .tv-row, .rows-11 .tv-row, .rows-14 .tv-row, .rows-18 .tv-row {
+    height: auto !important;
+  }
+  /* ad hucre kendi satirinda kalsin: taban %70 -> fiyatlar alt satira iner */
+  .tv-cell-name { -webkit-box-flex: 1; flex: 1 1 70%; }
+  .tv-cell-price {
+    -webkit-box-flex: 0;
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    white-space: nowrap;
+    font-size: 16px;
+  }
+  .tv-row-wide .tv-cell-price { width: auto; }
+  /* alis satisla ayni alt satirda kalsin; ok en sağda */
+  .tv-buy { margin-left: auto; }
+  .tv-cell-price + .tv-cell-price { margin-left: 12px; }
+  .tv-cell-dir { width: 20px; }
+  /* doviz seridi tek satirda kalsin ("49,98 TL" ikiye bolunmesin);
+   * kutu daralirsa USD/EUR alt satira sarsin (tasma yok) */
+  .cur-buy, .cur-sell { white-space: nowrap; }
+  #tv-currency-box { flex-wrap: wrap; }
+  .cur-block { margin-right: 28px; }
+  /* etiketler: kolon basligi gizlendigi icin fiyat yanina kisa ad eklenir */
+  .tv-cell-price.tv-buy::before {
+    content: "AL\0049\015E";
+    font-size: 10px; font-weight: 400; color: #9a968d;
+    letter-spacing: 0; margin-right: 5px;
+  }
+  .tv-cell-price.tv-sell::before {
+    content: "SAT\0049\015E";
+    font-size: 10px; font-weight: 400; color: #9a968d;
+    letter-spacing: 0; margin-right: 5px;
+  }
+  body.theme-light .tv-cell-price.tv-buy::before,
+  body.theme-light .tv-cell-price.tv-sell::before { color: #6b7280; }
+  body.theme-navy .tv-cell-price.tv-buy::before,
+  body.theme-navy .tv-cell-price.tv-sell::before { color: #8fa0c0; }
+  body.theme-classic .tv-cell-price.tv-buy::before,
+  body.theme-classic .tv-cell-price.tv-sell::before { color: #6b6b66; }
+  /* kolon basliklari: ad basligi kalsin, fiyat kolonlari + ok gizlenir */
+  #tv-col-buy, #tv-col-sell, .tv-head-dir { display: none !important; }
+  /* dipnot sutunu daralabilir olmali: adres/telefon satira sarar, tasma yok */
+  .dash-trust { -webkit-box-flex: 0; flex: 0 1 auto; min-width: 0; }
+  #tv-status-box {
+    -webkit-box-flex: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+  }
+}
+
+/* Tablet araligi (761-1180): footer yan yana kaldir; guven bloklari adres
+ * sutunuyla celisiyor -> mobilde alta dizilir, tablette gizlenir. */
+@media (min-width: 761px) and (max-width: 1180px) {
+  .dash-trust { display: none; }
+}
+
+/* ================= TABLET ================= */
+@media (max-width: 1180px) {
+  .dash-title { font-size: 26px; }
+  #tv-clock { font-size: 24px; }
+  #tv-ad-panel, #tv-ads-panel { width: 38%; }
+  .rows-8 .tv-row { height: 58px; font-size: 24px; }
+  .rows-11 .tv-row { height: 48px; font-size: 20px; }
+  .rows-14 .tv-row { height: 40px; font-size: 17px; }
+  .rows-18 .tv-row { height: 32px; font-size: 14px; }
+  .trust-desc { display: none; }
+}
+
+/* ================= MOBIL (320px+) ================= */
+@media (max-width: 760px) {
+  .user-dashboard { padding: 12px; overflow: auto; }
+  #tv-root { padding: 16px 14px; height: auto; min-height: 100%; }
+  #tv-header {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    flex-direction: column;
+    -webkit-box-align: start;
+    align-items: flex-start;
+    min-height: 0;
+  }
+  .dash-meta { text-align: left; margin-top: 10px; }
+  #tv-brand-name { letter-spacing: 2px; }
+  .dash-title { font-size: 20px; }
+  .dash-subtitle { font-size: 11px; letter-spacing: 2px; }
+
+  /* ortada vitrin alta iner */
+  #tv-main {
+    display: block;
+    height: auto;
+  }
+  #tv-products-panel { width: 100%; padding: 4px 2px 0; }
+  #tv-ads-panel { width: 100%; min-width: 0; margin: 16px 0 0; }
+  #tv-ad-frame { padding: 18px 14px; }
+
+  .tv-row { padding: 0 8px; }
+  .tv-cell-icon { width: 30px; height: 30px; line-height: 30px; margin-right: 8px; }
+  .tv-cell-icon .p-ico { width: 16px; height: 16px; }
+  .tv-cell-name { font-size: 14px; }
+  .tv-cell-price { font-size: 13px; }
+  .tv-cell-price + .tv-cell-price { margin-left: 10px; }
+  .tv-cell-dir { width: 18px; }
+  .tv-cell-price.tv-buy::before,
+  .tv-cell-price.tv-sell::before { font-size: 9px; margin-right: 4px; }
+  /* mobilde satir yuksekligini serbest birak */
+  .rows-8 .tv-row, .rows-11 .tv-row, .rows-14 .tv-row, .rows-18 .tv-row {
+    height: auto; min-height: 44px; padding-top: 8px; padding-bottom: 8px; font-size: 14px;
+  }
+
+  #tv-currency-box { display: block; padding: 10px 12px; }
+  .cur-block { font-size: 16px; margin: 0 0 8px; }
+
+  #tv-footer { display: block; }
+  .dash-trust { display: block; }
+  .trust-item { margin: 0 0 10px; }
+  #tv-status-box { text-align: left; margin-top: 6px; }
+}
+
+/* ================= ACIK (BEYAZ) TEMA =================
+ * Yonetim panelinden settings.theme="light" ile aktif olur (body.theme-light).
+ * Varsayilan Premium Koyu temadir; bu blok yalniz yuzey/metin renklerini acik
+ * zemine cevirir. Layout/boyutlar ayni kalir. ESKI MOTOR: var()/clamp()/grid yok. */
+body.theme-light .user-dashboard {
+  background-color: #eef1f6;
+  background-image: radial-gradient(120% 90% at 50% 0%, #ffffff 0%, #eef1f6 55%, #e6eaf1 100%);
+}
+body.theme-light #tv-root {
+  background-color: #ffffff;
+  background-image: linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%);
+  border-color: rgba(138, 109, 31, 0.30);
+  -webkit-box-shadow: 0 18px 50px rgba(30, 40, 70, 0.18);
+  box-shadow: 0 18px 50px rgba(30, 40, 70, 0.18);
+}
+body.theme-light #tv-header { border-bottom-color: rgba(138, 109, 31, 0.22); }
+body.theme-light #tv-brand-name { color: #6b7280; }
+body.theme-light .dash-title { color: #7c621b; }
+body.theme-light .dash-subtitle { color: #6b7280; }
+body.theme-light .dash-brand-badge {
+  background-color: #f3ecd6;
+  background-image: linear-gradient(145deg, #f6efdb 0%, #ece0bd 100%);
+  border-color: rgba(138, 109, 31, 0.45);
+}
+body.theme-light .dash-brand-badge .glyph { stroke: #7c621b; }
+body.theme-light #tv-clock { color: #1b1d26; }
+body.theme-light #tv-date, body.theme-light #tv-live { color: #6b7280; }
+
+body.theme-light #tv-products-head { color: #556072; border-bottom-color: rgba(20, 25, 40, 0.10); }
+body.theme-light .tv-row {
+  background-color: #f7f8fb;
+  background-image: linear-gradient(180deg, #ffffff 0%, #f4f6fa 100%);
+  border-color: rgba(20, 25, 40, 0.08);
+}
+body.theme-light .tv-row:hover { border-color: rgba(138, 109, 31, 0.45); }
+body.theme-light .tv-cell-icon {
+  background-color: #f3ecd6;
+  background-image: linear-gradient(145deg, #f6efdb 0%, #ece0bd 100%);
+  border-color: rgba(138, 109, 31, 0.40);
+}
+body.theme-light .tv-cell-icon .p-ico, body.theme-light .tv-cell-icon svg { stroke: #7c621b; }
+body.theme-light .tv-cell-name { color: #1b1d26; }
+body.theme-light .tv-buy { color: #556072; }
+body.theme-light .tv-sell { color: #7c621b; }
+body.theme-light .tv-dir-up { color: #1e9e5a; }
+body.theme-light .tv-dir-down { color: #c0392b; }
+
+body.theme-light #tv-ad-frame {
+  background-color: #f3ecd6;
+  background-image: radial-gradient(120% 80% at 50% 0%, #fbf6e6 0%, #f1e8cf 60%, #eaddbd 100%);
+  border-color: rgba(138, 109, 31, 0.35);
+}
+body.theme-light .ad-gem svg { stroke: #7c621b; }
+body.theme-light .ad-title { color: #7c621b; }
+body.theme-light .ad-sub { color: #6b7280; }
+body.theme-light .ad-h { color: #7c621b; }
+body.theme-light .ad-p { color: #556072; }
+
+body.theme-light #tv-currency-box { background-color: #f2f4f8; border-color: rgba(20, 25, 40, 0.10); }
+body.theme-light .cur-name { color: #7c621b; border-color: rgba(138, 109, 31, 0.45); }
+body.theme-light .cur-buy { color: #556072; }
+body.theme-light .cur-sell { color: #7c621b; }
+
+body.theme-light #tv-footer { border-top-color: rgba(138, 109, 31, 0.22); }
+body.theme-light .trust-title { color: #7c621b; }
+body.theme-light .trust-desc { color: #6b7280; }
+body.theme-light .trust-icon { color: #7c621b; }
+body.theme-light .trust-icon svg { stroke: #7c621b; }
+
+body.theme-light #tv-status-box { color: #556072; }
+body.theme-light #tv-status-box .lbl, body.theme-light .tv-contact-row .lbl { color: #6b7280; }
+body.theme-light #tv-updated { color: #556072; }
+body.theme-light .tv-note { color: #6b7280; }
+body.theme-light .tv-contact-row { color: #414b5a; }
+body.theme-light .tv-contact-row #tv-phone { color: #7c621b; }
+body.theme-light .tv-contact-note { color: #6b7280; }
+body.theme-light .tv-admin-link { color: #6b7280; border-color: rgba(138, 109, 31, 0.30); }
+body.theme-light .tv-admin-link:hover { color: #7c621b; border-color: rgba(138, 109, 31, 0.6); }
+
+/* ================= LACIVERT (NAVY) TEMA =================
+ * Koyu lacivert zemin, ayni premium dil, altin vurgular + gumus metin. */
+body.theme-navy .user-dashboard {
+  background-color: #060a18;
+  background-image: radial-gradient(120% 90% at 50% 0%, #16234a 0%, #0a1330 46%, #060a18 100%);
+}
+body.theme-navy #tv-root {
+  background-color: #0b1430;
+  background-image: linear-gradient(180deg, #101c40 0%, #081026 100%);
+  border-color: rgba(212, 175, 98, 0.32);
+  -webkit-box-shadow: 0 24px 70px rgba(0, 10, 40, 0.6), inset 0 1px 0 rgba(212, 175, 98, 0.12);
+  box-shadow: 0 24px 70px rgba(0, 10, 40, 0.6), inset 0 1px 0 rgba(212, 175, 98, 0.12);
+}
+body.theme-navy #tv-header { border-bottom-color: rgba(212, 175, 98, 0.22); }
+body.theme-navy #tv-brand-name { color: #9fb0d0; }
+body.theme-navy .dash-title { color: #E7C878; }
+body.theme-navy .dash-subtitle { color: #7f8fb0; }
+body.theme-navy .dash-brand-badge {
+  background-color: #12203f;
+  background-image: linear-gradient(145deg, #1b2f5c 0%, #0d1830 100%);
+  border-color: rgba(212, 175, 98, 0.45);
+}
+body.theme-navy .dash-brand-badge .glyph { stroke: #E7C878; }
+body.theme-navy #tv-clock { color: #eaf0ff; }
+body.theme-navy #tv-date, body.theme-navy #tv-live { color: #9fb0d0; }
+body.theme-navy #tv-products-head { color: #8fa0c0; border-bottom-color: rgba(212, 175, 98, 0.18); }
+body.theme-navy .tv-row {
+  background-color: #101a38;
+  background-image: linear-gradient(180deg, #14224a 0%, #0d1834 100%);
+  border-color: rgba(212, 175, 98, 0.14);
+}
+body.theme-navy .tv-row:hover { border-color: rgba(212, 175, 98, 0.45); }
+body.theme-navy .tv-cell-icon {
+  background-color: #16264c;
+  background-image: linear-gradient(145deg, #24407c 0%, #10203f 100%);
+  border-color: rgba(212, 175, 98, 0.40);
+}
+body.theme-navy .tv-cell-icon .p-ico, body.theme-navy .tv-cell-icon svg { stroke: #E7C878; }
+body.theme-navy .tv-cell-name { color: #eaf0ff; }
+body.theme-navy .tv-buy { color: #b9c6e0; }
+body.theme-navy .tv-sell { color: #E7C878; }
+body.theme-navy .tv-dir-up { color: #28C76F; }
+body.theme-navy .tv-dir-down { color: #EA5455; }
+body.theme-navy #tv-ad-frame {
+  background-color: #0d1730;
+  background-image: radial-gradient(120% 80% at 50% 0%, #1a2c58 0%, #101d3e 55%, #0a1428 100%);
+  border-color: rgba(212, 175, 98, 0.32);
+}
+body.theme-navy .ad-gem svg { stroke: #E7C878; }
+body.theme-navy .ad-title { color: #E7C878; }
+body.theme-navy .ad-sub { color: #b9c6e0; }
+body.theme-navy .ad-h { color: #E7C878; }
+body.theme-navy .ad-p { color: #cdd8f0; }
+body.theme-navy #tv-currency-box { background-color: #0c1630; border-color: rgba(212, 175, 98, 0.16); }
+body.theme-navy .cur-name { color: #E7C878; border-color: rgba(212, 175, 98, 0.45); }
+body.theme-navy .cur-buy { color: #b9c6e0; }
+body.theme-navy .cur-sell { color: #E7C878; }
+body.theme-navy #tv-footer { border-top-color: rgba(212, 175, 98, 0.22); }
+body.theme-navy .trust-title { color: #E7C878; }
+body.theme-navy .trust-desc { color: #9fb0d0; }
+body.theme-navy .trust-icon { color: #E7C878; }
+body.theme-navy .trust-icon svg { stroke: #E7C878; }
+body.theme-navy #tv-status-box { color: #b9c6e0; }
+body.theme-navy #tv-status-box .lbl, body.theme-navy .tv-contact-row .lbl { color: #7f8fb0; }
+body.theme-navy #tv-updated { color: #b9c6e0; }
+body.theme-navy .tv-note { color: #9fb0d0; }
+body.theme-navy .tv-contact-row { color: #cdd8f0; }
+body.theme-navy .tv-contact-row #tv-phone { color: #E7C878; }
+body.theme-navy .tv-contact-note { color: #7f8fb0; }
+body.theme-navy .tv-admin-link { color: #9fb0d0; border-color: rgba(212, 175, 98, 0.28); }
+body.theme-navy .tv-admin-link:hover { color: #E7C878; border-color: rgba(212, 175, 98, 0.6); }
+
+/* ================= KLASIK / MINIMAL TEMA =================
+ * Yuksek kontrast, degrade/golge YOK, ince cizgiler - isikli magazalar icin. */
+body.theme-classic .user-dashboard { background-color: #f4f4f2; background-image: none; }
+body.theme-classic #tv-root {
+  background-color: #ffffff; background-image: none;
+  border: 1px solid #c9c9c4;
+  -webkit-box-shadow: none; box-shadow: none;
+  -webkit-border-radius: 8px; border-radius: 8px;
+}
+body.theme-classic #tv-header { border-bottom-color: #dcdcd6; }
+body.theme-classic #tv-brand-name { color: #6b6b66; }
+body.theme-classic .dash-title { color: #1a1a1a; }
+body.theme-classic .dash-subtitle { color: #6b6b66; }
+body.theme-classic .dash-brand-badge { background-color: #f0efe9; background-image: none; border-color: #c9c9c4; }
+body.theme-classic .dash-brand-badge .glyph { stroke: #7a6a2e; }
+body.theme-classic #tv-clock { color: #1a1a1a; }
+body.theme-classic #tv-date, body.theme-classic #tv-live { color: #6b6b66; }
+body.theme-classic #tv-products-head { color: #6b6b66; border-bottom-color: #dcdcd6; }
+body.theme-classic .tv-row {
+  background-color: #fafaf7; background-image: none; border-color: #e2e2dc;
+  -webkit-border-radius: 6px; border-radius: 6px;
+}
+body.theme-classic .tv-row:hover { border-color: #b9a86a; -webkit-box-shadow: none; box-shadow: none; }
+body.theme-classic .tv-cell-icon { background-color: #f0efe9; background-image: none; border-color: #c9c9c4; }
+body.theme-classic .tv-cell-icon .p-ico, body.theme-classic .tv-cell-icon svg { stroke: #7a6a2e; }
+body.theme-classic .tv-cell-name { color: #1a1a1a; }
+body.theme-classic .tv-buy { color: #55554f; }
+body.theme-classic .tv-sell { color: #1a1a1a; }
+body.theme-classic .tv-dir-up { color: #1e8a4c; }
+body.theme-classic .tv-dir-down { color: #b23030; }
+body.theme-classic #tv-ad-frame { background-color: #f7f6f1; background-image: none; border-color: #d8d8d2; }
+body.theme-classic .ad-gem svg { stroke: #7a6a2e; }
+body.theme-classic .ad-title { color: #7a6a2e; }
+body.theme-classic .ad-sub { color: #6b6b66; }
+body.theme-classic .ad-h { color: #7a6a2e; }
+body.theme-classic .ad-p { color: #55554f; }
+body.theme-classic #tv-currency-box { background-color: #f7f6f1; border-color: #e2e2dc; }
+body.theme-classic .cur-name { color: #7a6a2e; border-color: #c9c9c4; }
+body.theme-classic .cur-buy { color: #55554f; }
+body.theme-classic .cur-sell { color: #1a1a1a; }
+body.theme-classic #tv-footer { border-top-color: #dcdcd6; }
+body.theme-classic .trust-title { color: #1a1a1a; }
+body.theme-classic .trust-desc { color: #6b6b66; }
+body.theme-classic .trust-icon { color: #7a6a2e; }
+body.theme-classic .trust-icon svg { stroke: #7a6a2e; }
+body.theme-classic #tv-status-box { color: #55554f; }
+body.theme-classic #tv-status-box .lbl, body.theme-classic .tv-contact-row .lbl { color: #6b6b66; }
+body.theme-classic #tv-updated { color: #55554f; }
+body.theme-classic .tv-note { color: #6b6b66; }
+body.theme-classic .tv-contact-row { color: #3a3a36; }
+body.theme-classic .tv-contact-row #tv-phone { color: #7a6a2e; }
+body.theme-classic .tv-contact-note { color: #6b6b66; }
+body.theme-classic .tv-admin-link { color: #6b6b66; border-color: #c9c9c4; }
+body.theme-classic .tv-admin-link:hover { color: #7a6a2e; border-color: #b9a86a; }
+
+/* ================= WIDGET RENKLERI (tema bazli) ================= */
+body.theme-light .tv-whatsapp { color: #1a6b34; background-color: rgba(37, 211, 102, 0.12); border-color: rgba(26, 107, 52, 0.40); }
+body.theme-navy .tv-whatsapp { color: #7fe0a3; background-color: rgba(37, 211, 102, 0.14); border-color: rgba(37, 211, 102, 0.50); }
+body.theme-classic .tv-whatsapp { color: #1a6b34; background-color: #eaf6ef; border-color: #9cc7ab; }
+body.theme-light .tv-theme-toggle { color: #556072; background-color: rgba(255, 255, 255, 0.75); border-color: rgba(124, 98, 27, 0.35); }
+body.theme-navy .tv-theme-toggle { color: #b9c6e0; background-color: rgba(16, 26, 56, 0.60); border-color: rgba(212, 175, 98, 0.40); }
+body.theme-classic .tv-theme-toggle { color: #55554f; background-color: #f0efe9; border-color: #c9c9c4; }
+
+/* ================= KISA EKRANLAR =================
+ * Amac: ekran boyutu ne olursa olsun urun satirlari icin dikey yer kalsin.
+ * Kisa ekranlarda baslik/doviz/dipnot kucultulur; tv.js fitProducts kalan
+ * alana satirlari sigdirir. Dikey medya sorgulari; eski Chromium uyumlu
+ * (var()/clamp()/grid YOK). TV (1080p) bu esikleri asmaz, etkilenmez. */
+@media (max-height: 820px) {
+  .user-dashboard { padding: 16px 22px; }
+  #tv-root { padding: 18px 26px 14px; }
+  #tv-header { min-height: 70px; padding-bottom: 12px; }
+  #tv-main { margin-top: 12px; }
+  #tv-currency-box { margin-top: 12px; padding: 9px 16px; }
+  #tv-footer { margin-top: 12px; }
+}
+@media (max-height: 680px) {
+  .user-dashboard { padding: 12px 16px; }
+  #tv-root { padding: 12px 20px 10px; }
+  #tv-header { min-height: 54px; padding-bottom: 8px; }
+  .dash-subtitle { display: none; }
+  #tv-main { margin-top: 8px; }
+  #tv-currency-box { margin-top: 8px; padding: 7px 14px; }
+  #tv-footer { margin-top: 8px; }
+  .trust-desc { display: none; }
+  .tv-contact { margin-top: 4px; }
+}
+@media (max-height: 540px) {
+  #tv-header { min-height: 44px; padding-bottom: 6px; }
+  .dash-title { font-size: 22px; }
+  #tv-brand-name { font-size: 12px; letter-spacing: 2px; }
+  .dash-brand-badge { width: 40px; height: 40px; line-height: 40px; margin-right: 12px; }
+  .dash-brand-badge .glyph { width: 20px; height: 20px; }
+  #tv-clock { font-size: 22px; }
+  #tv-date, #tv-live { font-size: 12px; }
+  .dash-trust { display: none; }
+  #tv-currency-box { padding: 5px 12px; }
+  .cur-name { font-size: 13px; }
+  .tv-contact-row { font-size: 13px; }
+  .tv-contact-note { display: none; }
+}
+@media (max-height: 470px) {
+  #tv-root { padding: 8px 14px 6px; }
+  #tv-header { min-height: 36px; padding-bottom: 4px; }
+  .dash-title { font-size: 16px; }
+  #tv-clock { font-size: 16px; }
+  #tv-date, #tv-live { font-size: 11px; }
+  #tv-main { margin-top: 5px; }
+  #tv-products-head { font-size: 11px; padding-bottom: 4px; }
+  #tv-currency-box { margin-top: 5px; padding: 4px 10px; }
+  .cur-name { font-size: 12px; }
+  #tv-footer { margin-top: 5px; }
+  #tv-status-box { font-size: 12px; }
+  .tv-note { display: none; }
+  .tv-contact-row { font-size: 12px; line-height: 1.2; }
+  .tv-admin-link { display: none; }
+}

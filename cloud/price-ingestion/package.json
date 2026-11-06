@@ -1,0 +1,17 @@
+{
+  "name": "altug-price-ingestion",
+  "version": "1.0.0",
+  "description": "Harem Altin Socket.IO -> Firebase Realtime Database bulut fiyat toplama hizmeti",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "firebase": "8.10.1",
+    "firebase-admin": "^12.0.0",
+    "socket.io-client": "^4.4.1"
+  }
+}

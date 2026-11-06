@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>ALTU&#286; KUYUMCULUK</title>
+<script>
+/* Kisa yonlendirme: ?tv -> TV sayfasi, aksi halde yonetim girisi.
+ * Firebase Hosting'de "/tv" ve "/admin" rewrite kurallari ile de
+ * ayni sayfalara gidilir (firebase.json). */
+(function () {
+  "use strict";
+  var q = window.location.search || "";
+  if (q.indexOf("tv") > -1 || window.location.pathname.indexOf("/tv") > -1) {
+    window.location.replace("tv.html");
+  } else {
+    window.location.replace("login.html");
+  }
+})();
+</script>
+</head>
+<body>
+<p>Y&#246;nlendiriliyor... E&#387;er sayf&#305; a&#231;&#305;lmazsa:</p>
+<ul>
+  <li><a href="tv.html">TV Fiyat Ekran&#305;</a></li>
+  <li><a href="login.html">Y&#246;netim Giri&#351;i</a></li>
+</ul>
+</body>
+</html>

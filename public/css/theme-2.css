@@ -1,0 +1,765 @@
+/* =====================================================================
+ * ALTUG KUYUMCULUK - TASARIM 2: "Premium Yesil" (kullanici ekrani)
+ * =====================================================================
+ * Zeytin yesili ust alan + krem arka plan + altin sarisi detaylar.
+ * MAHIR referans tasariminin tasarim dili ALTUG KUYUMCULUK markasina
+ * uyarlanmistir; baska isletmeye ait isim/logo/iletisim UNSURU YOKTUR.
+ *
+ * KAPSAMA KURALI (TALIMAT bolum 12): butun seciciler #theme2-root veya
+ * html.ui-theme-2 altindadir; tv.css (Tasarim 1) stilleriyle cakismaz.
+ *
+ * ESKI MOTOR KURALLARI (Toshiba/gomulu Chromium):
+ *  - CSS degiskeni (var(--x)), clamp() KULLANILMAZ; flexbox -webkit-
+ *    onekli kullanilir. Grid yalnizca modern hedeflerde, yedekli.
+ * ===================================================================== */
+
+/* ---------- KOK: Tasarim 2 aktifken sayfa zemini ve kaydirma ---------- */
+/* tv.css html/body overflow:hidden yapar; Tema 2 mobilde kaydirma ister. */
+html.ui-theme-2, html.ui-theme-2 body {
+  overflow: visible;
+  height: auto;
+  background: #f1eee1;
+  color: #2e3126;
+}
+html.ui-theme-1, html.ui-theme-1 body { overflow: hidden; }
+
+#theme2-root {
+  min-height: 100vh;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  padding-bottom: 88px; /* alt menu yuksekligi */
+  background-color: #f1eee1;
+  /* hafif desen dokusu (referanstaki motifli krem zemin yerine sakin doku) */
+  background-image: repeating-linear-gradient(45deg,
+      rgba(122, 128, 90, 0.035) 0px, rgba(122, 128, 90, 0.035) 2px,
+      transparent 2px, transparent 14px);
+  font-family: "Segoe UI", "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+
+/* ---------- A. YESIL BAND (marka alani + doviz kartlari tek blok) ------- */
+/* Band tam genislikte yesil zemin; header/ticker bant'in icinde seffaf.
+   Masaustu/TV'de de kartlar yesil zemin USTUNDE kalir -> okunurluk. */
+#t2-band {
+  background-color: #55603d;
+  background-image: linear-gradient(180deg, #5d6845 0%, #4b5536 100%);
+}
+#t2-header {
+  display: -webkit-box; display: flex;
+  -webkit-box-align: center; align-items: center;
+  background: none;
+  color: #f3efdf;
+  padding: 14px 14px 4px;
+}
+#t2-menu-btn {
+  -webkit-box-flex: 0; flex: 0 0 auto;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.10);
+  color: #efe9d2;
+  cursor: pointer;
+  line-height: 0;
+}
+#t2-menu-btn:hover { background: rgba(255, 255, 255, 0.18); }
+#t2-brand {
+  -webkit-box-flex: 1; flex: 1 1 auto;
+  text-align: center;
+  min-width: 0;
+}
+#t2-logo { max-height: 46px; max-width: 120px; display: block; margin: 0 auto 4px; }
+#t2-brand-name {
+  display: block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  letter-spacing: 6px;
+  color: #f6f2e2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.t2-brand-sub {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 5px;
+  color: #cfd0b4;
+  margin-top: 2px;
+}
+#t2-live {
+  -webkit-box-flex: 0; flex: 0 0 auto;
+  display: -webkit-box; display: flex;
+  -webkit-box-align: center; align-items: center;
+  font-size: 10px;
+  color: #e6e2cd;
+  min-width: 44px;
+  -webkit-box-pack: end; justify-content: flex-end;
+}
+.t2-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  -webkit-border-radius: 50%; border-radius: 50%;
+  margin-right: 5px;
+  background: #9aa08a;
+}
+.t2-dot-green { background: #6fd06f; }
+.t2-dot-amber { background: #e8c547; }
+.t2-dot-red { background: #e07a6a; }
+.t2-dot-gray { background: #9aa08a; }
+
+/* ---------- B. DOVIZ VE ONS ALANI (bandin icinde, seffaf zemin) --------- */
+#t2-ticker {
+  display: -webkit-box; display: flex;
+  background: none;
+  padding: 4px 10px 16px;
+  color: #f3efdf;
+}
+.t2-cur-card {
+  -webkit-box-flex: 1; flex: 1 1 0;
+  padding: 6px 10px 2px;
+  min-width: 0;
+}
+.t2-cur-card + .t2-cur-card {
+  border-left: 1px solid rgba(243, 239, 223, 0.22);
+}
+.t2-cur-name {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #d9d8c0;
+  margin-bottom: 6px;
+}
+.t2-cur-row {
+  display: -webkit-box; display: flex;
+  -webkit-box-pack: justify; justify-content: space-between;
+  -webkit-box-align: baseline; align-items: baseline;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.t2-cur-lbl { color: #cfd0b4; }
+.t2-cur-buy { color: #ffffff; font-weight: bold; font-size: 15px; white-space: nowrap; }
+.t2-cur-sell { color: #ecc94b; font-weight: bold; font-size: 15px; white-space: nowrap; }
+
+/* ---------- C. URUN NAVIGASYONU ---------- */
+#t2-toolbar {
+  display: -webkit-box; display: flex;
+  -webkit-box-align: center; align-items: center;
+  padding: 14px 12px 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.t2-tab {
+  -webkit-box-flex: 0; flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #6d6c58;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 16px;
+  margin-right: 6px;
+  border-radius: 22px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.t2-tab:hover { background: rgba(122, 128, 90, 0.12); }
+.t2-tab-active {
+  background: #fdfcf6;
+  color: #8a6420;
+  -webkit-box-shadow: 0 1px 4px rgba(60, 60, 40, 0.18);
+  box-shadow: 0 1px 4px rgba(60, 60, 40, 0.18);
+}
+.t2-tab-icon { padding: 10px 12px; line-height: 0; }
+#t2-search-row { padding: 0 12px 10px; }
+#t2-search-input {
+  width: 100%;
+  -webkit-box-sizing: border-box; box-sizing: border-box;
+  border: 1px solid #c9c6ac;
+  border-radius: 20px;
+  background: #fdfcf6;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #2e3126;
+  outline: none;
+}
+
+/* ---------- D. ALTIN FIYAT TABLOSU ---------- */
+#t2-table-head {
+  display: -webkit-box; display: flex;
+  -webkit-box-align: center; align-items: center;
+  padding: 6px 16px 10px;
+  color: #7c7b64;
+  font-size: 13px;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+.t2-th-name { -webkit-box-flex: 1; flex: 1 1 auto; min-width: 0; }
+.t2-th-buy { -webkit-box-flex: 0; flex: 0 0 34%; text-align: right; }
+.t2-th-sell { -webkit-box-flex: 0; flex: 0 0 30%; text-align: right; padding-right: 6px; }
+
+#t2-products-body { padding: 0 10px; }
+.t2-prow {
+  display: -webkit-box; display: flex;
+  -webkit-box-align: center; align-items: center;
+  background: #fbf9f0;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  padding: 14px 14px;
+  -webkit-box-shadow: 0 1px 3px rgba(70, 70, 45, 0.08);
+  box-shadow: 0 1px 3px rgba(70, 70, 45, 0.08);
+}
+.t2-prow:nth-child(even) { background: #f6f3e6; }
+.t2-pname {
+  -webkit-box-flex: 1; flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 16px;
+  color: #2e3126;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.t2-fav-btn {
+  -webkit-box-flex: 0; flex: 0 0 auto;
+  border: 0; background: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: #b9b69c;
+  line-height: 0;
+  font-size: 16px;
+}
+.t2-fav-on { color: #c9a227; }
+.t2-pbuy {
+  -webkit-box-flex: 0; flex: 0 0 34%;
+  text-align: right;
+  font-weight: 700;
+  font-size: 16px;
+  color: #33472f; /* koyu yesil alis */
+  white-space: nowrap;
+}
+.t2-psell {
+  -webkit-box-flex: 0; flex: 0 0 30%;
+  text-align: right;
+  padding-right: 6px;
+  white-space: nowrap;
+}
+.t2-psell-val { font-weight: 700; font-size: 16px; color: #8a6420; } /* altin/kahverengi satis */
+.t2-pdir { display: block; font-size: 11px; font-weight: 700; }
+.t2-pdir-up { color: #2e7d32; }
+.t2-pdir-down { color: #c0392b; }
+.t2-empty {
+  text-align: center;
+  color: #7c7b64;
+  padding: 26px 10px;
+  font-size: 14px;
+}
+
+/* ---------- ALT BILGI ---------- */
+#t2-footer {
+  padding: 14px 18px 20px;
+  text-align: center;
+  color: #7c7b64;
+  font-size: 12px;
+}
+#t2-updated-row { margin-bottom: 4px; }
+.t2-note { color: #8a6420; font-size: 12px; margin-bottom: 4px; }
+#t2-stale-bar {
+  margin: 10px auto 0;
+  max-width: 520px;
+  background: #fbeaea;
+  color: #a33030;
+  border: 1px solid #d98b8b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* ---------- E. MOBIL ALT MENU ---------- */
+#t2-bottom-nav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: -webkit-box; display: flex;
+  background: #fbf9f0;
+  border-top: 1px solid #d8d4bd;
+  -webkit-box-shadow: 0 -2px 8px rgba(70, 70, 45, 0.10);
+  box-shadow: 0 -2px 8px rgba(70, 70, 45, 0.10);
+  z-index: 40;
+  padding-bottom: 4px;
+}
+#t2-bottom-nav button {
+  -webkit-box-flex: 1; flex: 1 1 0;
+  border: 0; background: none;
+  color: #8b8a76;
+  font-size: 12px;
+  padding: 9px 0 7px;
+  cursor: pointer;
+  text-align: center;
+}
+#t2-bottom-nav button span { display: block; margin-top: 2px; }
+#t2-bottom-nav .t2-nav-active { color: #55603d; font-weight: 700; }
+
+/* ---------- F. WHATSAPP SABIT BUTON ---------- */
+.t2-whatsapp {
+  position: fixed;
+  right: 16px; bottom: 84px;
+  width: 52px; height: 52px;
+  line-height: 52px;
+  text-align: center;
+  background: #25d366;
+  color: #ffffff;
+  -webkit-border-radius: 50%; border-radius: 50%;
+  -webkit-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  z-index: 45;
+  text-decoration: none;
+}
+.t2-whatsapp svg { vertical-align: middle; }
+
+/* ---------- LETISIM PANELI / CEKMECE / TOAST ---------- */
+#t2-contact-sheet, #t2-drawer {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 32, 22, 0.55);
+  z-index: 60;
+}
+#t2-contact-box, #t2-drawer-box {
+  position: absolute;
+  left: 50%; top: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  width: 88%;
+  max-width: 380px;
+  background: #fbf9f0;
+  border-radius: 14px;
+  padding: 18px;
+  -webkit-box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.t2-contact-title, .t2-drawer-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #55603d;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.t2-contact-row {
+  font-size: 13px;
+  color: #2e3126;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.t2-lbl { font-weight: 700; color: #7c7b64; margin-right: 6px; }
+.t2-wa-btn {
+  display: block;
+  background: #25d366;
+  color: #ffffff;
+  text-decoration: none;
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 12px 0 8px;
+}
+#t2-contact-close, #t2-drawer-close {
+  display: block;
+  width: 100%;
+  border: 1px solid #c9c6ac;
+  background: #f1eee1;
+  color: #6d6c58;
+  border-radius: 10px;
+  padding: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#t2-drawer-box a {
+  display: block;
+  padding: 12px 6px;
+  border-bottom: 1px solid #e4e0cc;
+  color: #2e3126;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+#t2-drawer-box a:hover { color: #8a6420; }
+#t2-drawer-box button { margin-top: 12px; }
+
+/* ---------- IBAN PILL (header) + IBAN PANELI ---------- */
+.t2-iban-pill {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 5px 16px;
+  border: 1px solid rgba(236, 201, 75, 0.65);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ecc94b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.t2-iban-pill:hover { background: rgba(255, 255, 255, 0.14); }
+#t2-iban-sheet {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 32, 22, 0.55);
+  z-index: 62;
+}
+#t2-iban-box {
+  position: absolute;
+  left: 50%; top: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 420px;
+  max-height: 82vh;
+  overflow-y: auto;
+  background: #fbf9f0;
+  border-radius: 14px;
+  padding: 18px;
+  -webkit-box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.t2-iban-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #55603d;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.t2-iban-row {
+  background: #f1eee1;
+  border: 1px solid #ddd8c2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.t2-iban-row:hover { border-color: #8a6420; }
+.t2-iban-bank { font-weight: 700; font-size: 14px; color: #2e3126; }
+.t2-iban-holder { font-size: 11px; color: #7c7b64; margin-top: 2px; }
+.t2-iban-no {
+  font-size: 14px;
+  font-weight: 700;
+  color: #8a6420;
+  letter-spacing: 1px;
+  margin-top: 6px;
+  word-break: break-all;
+}
+.t2-iban-copy { font-size: 10px; color: #9aa08a; margin-top: 4px; }
+#t2-iban-close {
+  display: block;
+  width: 100%;
+  border: 1px solid #c9c6ac;
+  background: #f1eee1;
+  color: #6d6c58;
+  border-radius: 10px;
+  padding: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+}
+#t2-toast {
+  position: fixed;
+  left: 50%; bottom: 110px;
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
+  background: #2e3126;
+  color: #f6f2e2;
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 20px;
+  -webkit-box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  z-index: 70;
+  display: none;
+  max-width: 86%;
+  text-align: center;
+}
+
+/* ---------- ONIZLEME UYARISI (her iki tasarimin ustunde) ---------- */
+#ui-preview-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: #b7791f;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 6px 10px;
+  z-index: 90;
+  -webkit-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+/* Onizleme cubugu acikken govde ustten bosluk birakir (header altta kalmasin) */
+html.ui-preview-on body { padding-top: 30px; }
+
+/* ---------- DAR EKRAN (<=420px telefon): tasma/kirilma onlemleri -------- */
+@media (max-width: 420px) {
+  #t2-brand-name { font-size: 19px; letter-spacing: 2px; }
+  .t2-brand-sub { letter-spacing: 2px; font-size: 8px; }
+  #t2-ticker { padding-left: 4px; padding-right: 4px; }
+  .t2-cur-card { padding: 6px 5px 2px; }
+  .t2-cur-name { font-size: 11px; letter-spacing: 0; }
+  .t2-cur-row { font-size: 11px; }
+  .t2-cur-buy, .t2-cur-sell { font-size: 12px; }
+  .t2-pname, .t2-pbuy, .t2-psell-val { font-size: 14px; }
+  .t2-prow { padding: 12px 10px; }
+  .t2-pbuy { flex: 0 0 32%; }
+  .t2-psell { flex: 0 0 32%; }
+}
+
+/* ---------- TABLET (768-1023px): alt menu yok, icerik ortalanir -------- */
+@media (min-width: 768px) {
+  #theme2-root { padding-bottom: 24px; }
+  #t2-bottom-nav { display: none; }
+  #t2-band { padding: 0 10px; }
+  #t2-header, #t2-ticker { max-width: 720px; margin-left: auto; margin-right: auto; }
+  #t2-content-wrap { max-width: 1000px; margin-left: auto; margin-right: auto; }
+  .t2-whatsapp { bottom: 22px; }
+}
+
+/* ---------- MASAUSTU (>=1024px): yesil band tam genislik, kartlar bantta -- */
+@media (min-width: 1024px) {
+  #t2-band { padding: 0 10px; }
+  #t2-header, #t2-ticker { max-width: 1000px; }
+  #t2-content-wrap { max-width: 1000px; margin-left: auto; margin-right: auto; }
+  #t2-brand-name { font-size: 30px; }
+  /* Masaustunde sekmeli arayuz/arama/gizli menu gereksiz: liste zaten karsida */
+  #t2-toolbar, #t2-search-row, #t2-menu-btn { display: none; }
+  #t2-table-head { padding-top: 18px; }
+  .t2-prow { padding: 12px 18px; }
+}
+
+/* ---------- TV MODU (html.tv-mode): pasif tam ekran, buyuk tipografi -----
+ * Genislik degil SINIF ile secilir; boylece modern masaustu (>=1280 ama
+ * tv-mode DEGIL) bu kurallara takilmaz, asagidaki zengin duzenini alir.
+ * Eski Toshiba -> grid desteklemedigi icin JS tv-mode ekler -> pasif kalir. */
+html.tv-mode.ui-theme-2, html.tv-mode.ui-theme-2 body { overflow: hidden; height: 100%; }
+html.tv-mode #theme2-root {
+  min-height: 100vh;
+  display: -webkit-box; display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  flex-direction: column;
+  padding-bottom: 10px;
+}
+html.tv-mode #t2-content-wrap {
+  -webkit-box-flex: 1; flex: 1 1 auto;
+  display: -webkit-box; display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+}
+html.tv-mode #t2-table-head { width: 100%; }
+html.tv-mode #t2-products-body {
+  -webkit-box-flex: 1; flex: 1 1 auto;
+  overflow: hidden;
+}
+html.tv-mode #t2-brand-name { font-size: 38px; letter-spacing: 10px; }
+html.tv-mode .t2-brand-sub { font-size: 13px; }
+html.tv-mode .t2-cur-name { font-size: 17px; }
+html.tv-mode .t2-cur-row { font-size: 16px; }
+html.tv-mode .t2-cur-buy, html.tv-mode .t2-cur-sell { font-size: 20px; }
+html.tv-mode #t2-toolbar { padding-top: 18px; }
+html.tv-mode .t2-tab { font-size: 17px; padding: 12px 22px; }
+html.tv-mode #t2-table-head { font-size: 16px; padding-top: 12px; }
+html.tv-mode .t2-prow { padding: 14px 22px; margin-bottom: 10px; }
+html.tv-mode .t2-pname, html.tv-mode .t2-pbuy, html.tv-mode .t2-psell-val { font-size: 22px; }
+html.tv-mode .t2-pdir { font-size: 14px; }
+html.tv-mode #t2-footer { font-size: 15px; }
+html.tv-mode #t2-sidebar { display: none !important; }
+/* TV'de kisisel etkilesim (favori/arama/paylasim/menu) ve sabit buton
+   gereksizdir; visibility degil DISPLAY:none -> bosluk birakmaz.
+   .t2-whatsapp JS satir-ici stil yazdigi icin !important sarttir. */
+html.tv-mode #t2-menu-btn, html.tv-mode #t2-toolbar, html.tv-mode #t2-search-row, html.tv-mode #t2-fav-controls { display: none; }
+html.tv-mode #t2-iban-btn { display: none; }
+html.tv-mode .t2-whatsapp { display: none !important; }
+
+/* ---------- YAN PANEL (cevirici): varsayilan GIZLI, sadece zengin masaustunde acilir --- */
+#t2-sidebar { display: none; }
+.t2-panel {
+  background: #ffffff;
+  border: 1px solid #e7dfca;
+  border-radius: 18px;
+  padding: 18px 20px;
+  -webkit-box-shadow: 0 12px 30px rgba(45, 61, 39, 0.07);
+  box-shadow: 0 12px 30px rgba(45, 61, 39, 0.07);
+}
+.t2-panel-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #29412d;
+  margin-bottom: 14px;
+}
+.t2-conv-row {
+  display: -webkit-box; display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+#t2-conv-amount, #t2-conv-unit {
+  -webkit-box-sizing: border-box; box-sizing: border-box;
+  border: 1px solid #cfc7a8;
+  border-radius: 10px;
+  background: #fdfcf6;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: #2e3126;
+  outline: none;
+}
+#t2-conv-amount { -webkit-box-flex: 1; flex: 1 1 auto; min-width: 0; }
+#t2-conv-unit { -webkit-box-flex: 0; flex: 0 0 auto; }
+.t2-conv-result { border-top: 1px solid #e7dfca; padding-top: 12px; }
+.t2-conv-line {
+  display: -webkit-box; display: flex;
+  -webkit-box-pack: justify; justify-content: space-between;
+  -webkit-box-align: baseline; align-items: baseline;
+  padding: 6px 0;
+  font-size: 15px;
+}
+.t2-conv-k { color: #7c7b64; }
+.t2-conv-v-buy { color: #33472f; font-weight: 700; }
+.t2-conv-v-sell { color: #a8750b; font-weight: 700; }
+.t2-conv-hint { color: #9aa08a; font-size: 11px; margin-top: 8px; }
+/* CEVIRICI modal kapatma butonu: yalnizca mobil modal modunda gorunur. */
+.t2-conv-close {
+  display: none;
+  position: absolute; top: 10px; right: 12px;
+  width: 30px; height: 30px; line-height: 26px;
+  padding: 0; text-align: center;
+  border: 1px solid #cfc7a8; border-radius: 50%;
+  background: #fdfcf6; color: #55603d;
+  font-size: 20px; cursor: pointer;
+}
+/* Mobil (<768px): alt nav "Cevirici" butonu, yan paneli tam ekran modal
+   olarak acar. Masaustunde panel zaten sabit; bu sinif etkisiz kalir. */
+@media (max-width: 767px) {
+  #t2-sidebar.t2-conv-open {
+    display: block; position: fixed;
+    left: 0; top: 0; right: 0; bottom: 0;
+    z-index: 95; padding: 18px; overflow-y: auto;
+    background: rgba(28, 38, 26, 0.55);
+    -webkit-box-sizing: border-box; box-sizing: border-box;
+  }
+  #t2-sidebar.t2-conv-open #t2-converter {
+    position: relative; max-width: 420px; margin: 20px auto 0;
+  }
+  #t2-sidebar.t2-conv-open .t2-conv-close { display: block; }
+}
+
+/* ================= ZENGIN MASAUSTU DZENI (>=1181px, tv-mode DEGIL, grid destekli) ======
+ * Referans sitedeki .desktop-site mantigi: ustte yapisken yuvarlak bar +
+ * ozet kartlari; altta iki sutun (sol fiyat tablosu, sag yan panel/cevirici);
+ * altta yesil degrade footer. Yalnizca modern tarayicilar (grid) icin. */
+@media (min-width: 1181px) {
+  @supports (display: grid) {
+    html:not(.tv-mode) #theme2-root {
+      max-width: 1240px;
+      margin-left: auto; margin-right: auto;
+      padding: 22px 30px 40px;
+    }
+    /* UST BAR: yuvarlak, yapisken yesil kart */
+    html:not(.tv-mode) #t2-band {
+      position: -webkit-sticky; position: sticky;
+      top: 16px;
+      z-index: 30;
+      border: 1px solid rgba(218, 183, 98, 0.34);
+      border-radius: 22px;
+      padding: 6px 22px 14px;
+      -webkit-box-shadow: 0 18px 44px rgba(31, 54, 30, 0.20);
+      box-shadow: 0 18px 44px rgba(31, 54, 30, 0.20);
+    }
+    html:not(.tv-mode) #t2-header { padding: 12px 0 2px; }
+    html:not(.tv-mode) #t2-brand-name { font-size: 30px; letter-spacing: 6px; }
+    /* OZET KARTLARI: krem/yesil zemin uzerinde beyaz kartlar */
+    html:not(.tv-mode) #t2-ticker {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      padding: 10px 0 4px;
+    }
+    html:not(.tv-mode) .t2-cur-card {
+      background: #fffdfa;
+      border: 1px solid #e7dfca;
+      border-radius: 16px;
+      padding: 12px 16px;
+      -webkit-box-shadow: 0 8px 20px rgba(41, 61, 36, 0.10);
+      box-shadow: 0 8px 20px rgba(41, 61, 36, 0.10);
+    }
+    html:not(.tv-mode) .t2-cur-card + .t2-cur-card { border-left: 1px solid #e7dfca; }
+    html:not(.tv-mode) .t2-cur-name { color: #8b8068; font-size: 13px; }
+    html:not(.tv-mode) .t2-cur-lbl { color: #8b8068; }
+    html:not(.tv-mode) .t2-cur-buy { color: #28352a; }
+    html:not(.tv-mode) .t2-cur-sell { color: #a8750b; }
+
+    /* IKI SUTUN ANA IZGARA */
+    html:not(.tv-mode) #t2-content-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      column-gap: 16px;
+      row-gap: 0;
+      max-width: none;
+      margin-left: 0; margin-right: 0;
+      padding-top: 18px;
+      -webkit-box-align: start; align-items: start;
+    }
+    html:not(.tv-mode) #t2-table-head {
+      grid-column: 1; grid-row: 1;
+      background: #ffffff;
+      border: 1px solid #e7dfca;
+      border-bottom: 0;
+      border-radius: 18px 18px 0 0;
+      padding: 14px 22px;
+      color: #8b8068; font-size: 12px; letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    html:not(.tv-mode) #t2-products-body {
+      grid-column: 1; grid-row: 2;
+      background: #ffffff;
+      border: 1px solid #e7dfca;
+      border-radius: 0 0 18px 18px;
+      padding: 0 22px 6px;
+      -webkit-box-shadow: 0 12px 30px rgba(45, 61, 39, 0.07);
+      box-shadow: 0 12px 30px rgba(45, 61, 39, 0.07);
+    }
+    html:not(.tv-mode) #t2-sidebar {
+      display: block;
+      grid-column: 2; grid-row: 1 / span 2;
+    }
+    html:not(.tv-mode) #t2-footer {
+      grid-column: 1 / -1; grid-row: 3;
+      margin-top: 22px;
+      background: linear-gradient(135deg, #1c3c23, #304d2b);
+      border: 1px solid rgba(226, 188, 92, 0.42);
+      border-radius: 22px;
+      color: #fffaf0;
+      padding: 20px 24px;
+      -webkit-box-shadow: 0 14px 32px rgba(31, 54, 30, 0.20);
+      box-shadow: 0 14px 32px rgba(31, 54, 30, 0.20);
+    }
+    html:not(.tv-mode) #t2-footer .t2-note { color: #e6ca82; }
+    html:not(.tv-mode) #t2-updated-row { color: #d9ca9e; }
+
+    /* TABLO SATIRLARI: kart gorunumu -> ayracizgili satirlar (referans) */
+    html:not(.tv-mode) .t2-prow {
+      background: transparent;
+      border-radius: 0;
+      margin-bottom: 0;
+      border-bottom: 1px solid #eee9dc;
+      -webkit-box-shadow: none; box-shadow: none;
+      min-height: 60px;
+      padding: 14px 0;
+    }
+    html:not(.tv-mode) .t2-prow:last-child { border-bottom: 0; }
+    html:not(.tv-mode) .t2-prow:nth-child(even) { background: #f7f5ea; }
+    html:not(.tv-mode) .t2-pname { font-size: 17px; }
+    html:not(.tv-mode) .t2-pbuy { font-size: 17px; }
+    html:not(.tv-mode) .t2-psell-val { font-size: 17px; }
+    /* Ust bar sticky iken onizleme cubugu ustte kalmasin */
+    html.ui-preview-on:not(.tv-mode) #t2-band { top: 46px; }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/tv", "destination": "/tv.html" },
+      { "source": "/admin", "destination": "/admin.html" },
+      { "source": "/login", "destination": "/login.html" }
+    ],
+    "headers": [
+      {
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" },
+          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" }
+        ]
+      }
+    ]
+  },
+  "database": {
+    "rules": "firebase/database.rules.json"
+  },
+  "storage": {
+    "rules": "firebase/storage.rules"
+  }
+}

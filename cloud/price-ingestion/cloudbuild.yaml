@@ -1,0 +1,51 @@
+# ALTUG KUYUMCULUK - Bulut Fiyat Toplama Hizmeti Dagitim Talimati
+# Bu dosya Google Cloud Build tarafinda calisir. Kullanicinin bilgisayarinda
+# Docker, Node.js veya gcloud CURULMASI GEREKMEZ.
+#
+# GEREKENLER (yalnizca bir kez, tarayici üzerinden):
+#  1. https://console.cloud.google.com projesi olusturun.
+#  2. Cloud Build API'sini etkinlestirin.
+#  3. Bu klasoru (cloud/price-ingestion) Cloud Build kaynagi olarak baglayin
+#     (GitHub repo veya Browser Upload ile zip).
+#  4. asagidaki adimlari calistirin.
+#
+# Ortam degiskenlari SECRET MANAGER'dan alinir (gcloud ile bir kez set edilir):
+#   FB_PROJECT_ID, FB_CLIENT_EMAIL, FB_PRIVATE_KEY, FB_DATABASE_URL,
+#   HAREM_SOCKET_URL, HAREM_SYMBOLS
+
+steps:
+  # 1) Konteyner imajini bulutta olustur
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/altug-price-ingestion:latest', '.']
+
+  # 2) Imaji Artifact Registry'ye it
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/altug-price-ingestion:latest']
+
+  # 3) Cloud Run servisi olarak yayinla (SUREKLI CALISAN mod)
+  #    --no-cpu-throttling: Socket.IO baglantisi bosta bile ayakta kalsin.
+  #    min-instances=1: baglanti hic kopmasin.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - run
+      - deploy
+      - altug-price-ingestion
+      - --platform=managed
+      - --region=europe-west1
+      - --image=gcr.io/$PROJECT_ID/altug-price-ingestion:latest
+      - --min-instances=1
+      - --max-instances=1
+      - --no-cpu-throttling
+      - --memory=256Mi
+      - --cpu=1
+      - --port=8080
+      - --allow-unauthenticated
+      - --set-env-vars=HAREM_SOCKET_URL=https://socket.haremaltin.com,HAREM_SYMBOLS=ALTIN,USDTRY,EURTRY
+      - --update-secrets=FB_PROJECT_ID=FB_PROJECT_ID:latest,FB_CLIENT_EMAIL=FB_CLIENT_EMAIL:latest,FB_PRIVATE_KEY=FB_PRIVATE_KEY:latest,FB_DATABASE_URL=FB_DATABASE_URL:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - gcr.io/$PROJECT_ID/altug-price-ingestion:latest

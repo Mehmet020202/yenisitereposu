@@ -1,0 +1,341 @@
+/* =====================================================================
+ * ALTUG KUYUMCULUK - Yonetim Paneli Stilleri (telefon/tablet/PC uyumlu)
+ * ===================================================================== */
+
+html, body {
+  margin: 0; padding: 0;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  background: #f2f3f7;
+  color: #23262f;
+}
+
+/* ---------- TOPBAR ---------- */
+#admin-topbar {
+  background: #1b1d26;
+  color: #ffffff;
+  padding: 12px 18px;
+  overflow: hidden;
+}
+.topbar-brand { font-weight: bold; font-size: 18px; color: #e8c547; float: left; }
+.topbar-user { float: right; margin-right: 14px; line-height: 30px; font-size: 13px; color: #bbbbbb; }
+
+/* ---------- LAYOUT ---------- */
+#admin-layout { overflow: hidden; }
+#admin-menu {
+  float: left;
+  width: 230px;
+  background: #23262f;
+  min-height: 80vh;
+  padding: 10px 0;
+}
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  color: #cfd2da;
+  padding: 11px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.menu-item:hover { background: #2c303c; color: #ffffff; }
+.menu-item.active { background: #2c303c; color: #e8c547; border-left-color: #e8c547; }
+.menu-setup { color: #e67e22; }
+
+#admin-content {
+  margin-left: 230px;
+  padding: 22px 28px;
+}
+.section h2 { margin-top: 0; font-size: 20px; color: #1b1d26; }
+.section h3 { font-size: 16px; color: #555; }
+
+/* ---------- ELEMANLAR ---------- */
+.btn {
+  background: #1b1d26;
+  color: #ffffff;
+  border: 0;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 3px;
+  display: inline-block;
+  text-decoration: none;
+}
+.btn:hover { background: #333848; }
+.btn-small { padding: 6px 12px; font-size: 12px; margin-left: 8px; }
+.btn-outline { background: transparent; border: 1px solid #e8c547; color: #e8c547; }
+.btn-x {
+  background: #eef0f5;
+  border: 1px solid #c8ccd8;
+  color: #23262f;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.btn-danger { background: #fbeaea; border-color: #d98b8b; color: #a33030; }
+.btn-archive { background: #fdf3e3; border-color: #d8b878; color: #8a6420; }
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #dde1ea;
+  border-radius: 4px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.panel input, .section input[type="text"], select {
+  padding: 9px 10px;
+  border: 1px solid #c8ccd8;
+  border-radius: 3px;
+  font-size: 14px;
+  margin: 4px 8px 4px 0;
+  min-width: 160px;
+}
+.section label { display: block; font-size: 13px; color: #556; margin-top: 10px; }
+.check-line, .radio-line { font-size: 14px; color: #23262f; margin-top: 12px; }
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.tbl th {
+  background: #1b1d26;
+  color: #e8c547;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.tbl td { border-bottom: 1px solid #e4e7ef; padding: 6px 10px; }
+.cell-input { width: 90%; padding: 5px; border: 1px solid #dde1ea; border-radius: 2px; }
+.cell-num { width: 70px; }
+.muted { color: #8a8fa0; font-size: 13px; }
+/* Genis tablolar icin yatay kaydirma sarmalayicisi (telefon/tablet) */
+.tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+.tbl-scroll .tbl { margin: 0; }
+
+.cards { overflow: hidden; }
+.card {
+  float: left;
+  width: 220px;
+  background: #ffffff;
+  border: 1px solid #dde1ea;
+  border-radius: 4px;
+  padding: 14px;
+  margin: 0 14px 14px 0;
+}
+.card-t { font-size: 12px; color: #8a8fa0; text-transform: uppercase; }
+.card-v { font-size: 17px; font-weight: bold; margin-top: 6px; }
+.card-v.ok { color: #1e9e5a; }
+.card-v.bad { color: #c0392b; }
+.card-v.warn { color: #d68910; }
+
+.preview-box {
+  background: #fffdf2;
+  border: 1px solid #e8c547;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+/* ---------- TV ONIZLEME ---------- */
+.preview-frame-wrap {
+  width: 100%;
+  max-width: 960px;
+  background: #101014;
+  border: 4px solid #1b1d26;
+  border-radius: 6px;
+  overflow: hidden;
+}
+#tv-preview-frame {
+  width: 1920px;
+  height: 1080px;
+  border: 0;
+  transform: scale(0.48);
+  transform-origin: 0 0;
+  -webkit-transform: scale(0.48);
+  -webkit-transform-origin: 0 0;
+}
+
+/* ---------- TOAST ---------- */
+#toast {
+  display: none;
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  background: #1b1d26;
+  color: #e8c547;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  z-index: 999;
+}
+
+/* ---------- LOGIN ---------- */
+.login-page { background: #1b1d26; }
+.login-card {
+  max-width: 380px;
+  margin: 8vh auto;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 34px 30px;
+}
+.login-brand { text-align: center; font-size: 22px; font-weight: bold; color: #8a6d1f; letter-spacing: 2px; }
+.login-sub { text-align: center; color: #8a8fa0; margin-bottom: 22px; }
+.login-card label { display: block; font-size: 13px; color: #556; margin-top: 12px; }
+.login-card input {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #c8ccd8;
+  border-radius: 3px;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+.login-card button {
+  width: 100%;
+  margin-top: 20px;
+  background: #1b1d26;
+  color: #e8c547;
+  border: 0;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.login-error { color: #c0392b; font-size: 13px; margin-top: 10px; }
+.login-hint { color: #8a8fa0; font-size: 12px; margin-top: 18px; text-align: center; }
+
+/* ---------- URUN DUZENLEME MODALI ---------- */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(20, 22, 30, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.modal-box {
+  background: #ffffff; border-radius: 6px; padding: 22px 24px;
+  width: 360px; max-width: 92%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.modal-title { font-size: 18px; font-weight: bold; color: #1b1d26; margin-bottom: 4px; }
+.modal-box label { display: block; font-size: 13px; color: #556; margin: 12px 0 4px; }
+.modal-box input {
+  width: 100%; box-sizing: border-box; padding: 10px;
+  border: 1px solid #c8ccd8; border-radius: 3px; font-size: 15px; margin: 0;
+}
+.modal-error { color: #c0392b; font-size: 13px; min-height: 18px; margin-top: 10px; }
+.modal-actions { margin-top: 18px; }
+.modal-actions .btn { margin-right: 10px; }
+.btn-ghost { background: #eef0f5; color: #23262f; border: 1px solid #c8ccd8; }
+.btn-ghost:hover { background: #e2e5ee; }
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 800px) {
+  #admin-menu { float: none; width: 100%; min-height: 0; overflow-x: auto; white-space: nowrap; }
+  .menu-item { display: inline-block; width: auto; border-left: 0; border-bottom: 3px solid transparent; }
+  .menu-item.active { border-bottom-color: #e8c547; }
+  #admin-content { margin-left: 0; padding: 16px; }
+  .card { width: 46%; }
+}
+
+/* ---------- TELEFON (~520px ve alti) ---------- */
+@media (max-width: 520px) {
+  #admin-content { padding: 12px; }
+  .section h2 { font-size: 17px; }
+  .panel input, .section input[type="text"], select {
+    display: block; width: 100%; min-width: 0; box-sizing: border-box; margin: 0 0 8px;
+  }
+  .panel .btn { display: block; width: 100%; margin-top: 4px; }
+  .tbl { font-size: 12px; }
+  .tbl th, .tbl td { padding: 6px 8px; }
+  .btn-x { padding: 5px 7px; font-size: 11px; }
+  td button + button { margin-left: 4px; }
+  .card { width: 100%; }
+  .modal-box { padding: 18px; }
+}
+
+/* ---------- KULLANICI EKRANI TASARIM YONETIMI (sec-themes) ---------- */
+.theme-cards { overflow: hidden; margin: 14px 0; }
+.theme-card {
+  float: left;
+  width: 340px;
+  margin: 0 16px 16px 0;
+  background: #ffffff;
+  border: 2px solid #d8dce8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.theme-card[data-active="1"] { border-color: #e8c547; box-shadow: 0 0 0 1px #e8c547; }
+.theme-thumb {
+  height: 200px;
+  background: #101014;
+  overflow: hidden;
+  position: relative;
+}
+.theme-thumb iframe {
+  width: 1280px;
+  height: 800px;
+  border: 0;
+  position: absolute;
+  top: 0; left: 0;
+  transform: scale(0.27);
+  transform-origin: 0 0;
+  -webkit-transform: scale(0.27);
+  -webkit-transform-origin: 0 0;
+  pointer-events: none; /* kart kucuk gorseli tiklanamaz; ONIZLE butonu kullanilir */
+}
+.theme-card-body { padding: 12px 14px 14px; }
+.theme-card-title { font-size: 15px; font-weight: bold; color: #1b1d26; }
+.theme-card-title .tname { float: left; }
+.theme-badge {
+  float: right;
+  background: #e8c547;
+  color: #1b1d26;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 10px;
+  letter-spacing: 1px;
+}
+.theme-card-desc { clear: both; color: #667; font-size: 12px; margin: 6px 0 10px; line-height: 1.5; }
+.theme-card-actions { white-space: nowrap; }
+.theme-publish-btn { font-weight: bold; }
+.theme-publish-btn:disabled { opacity: 0.55; cursor: default; }
+#theme-revert-wrap { margin: 6px 0 18px; }
+#theme-preview-wrap {
+  clear: both;
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #d8dce8;
+  border-radius: 8px;
+}
+#theme-preview-wrap h3 { margin: 0 0 10px; }
+.theme-dev-btns { margin-bottom: 10px; }
+.theme-dev-btns .btn-x { padding: 7px 14px; font-size: 12px; margin-right: 6px; }
+.theme-dev-btns .dev-on { background: #1b1d26; color: #e8c547; border-color: #1b1d26; }
+#theme-preview-stage {
+  background: #101014;
+  border: 4px solid #1b1d26;
+  border-radius: 6px;
+  overflow: auto;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+#theme-preview-stage iframe { border: 0; display: block; width: 100%; height: 100%; }
+#theme-preview-stage.dev-mobile { width: 390px; height: 760px; }
+#theme-preview-stage.dev-desktop { width: 100%; max-width: 1060px; height: 640px; }
+#theme-preview-stage.dev-tv { width: 100%; max-width: 1060px; height: 600px; }
+.theme-publish-row { margin-top: 14px; }
+@media (max-width: 520px) {
+  .theme-card { float: none; width: 100%; margin-right: 0; }
+  #theme-preview-stage.dev-mobile { width: 100%; }
+}

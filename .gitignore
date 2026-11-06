@@ -1,0 +1,13 @@
+# Bagimliliklar ve derleme ciktilari (kullanici PC'sinde calistirilmaz)
+node_modules/
+**/node_modules/
+
+# Gercek gizli anahtarlar ASLA depoya girmez - sadece .env.example kalir
+.env
+.env.local
+*.firebasesecret
+serviceAccount*.json
+
+# Isletim sistemi
+Thumbs.db
+.DS_Store

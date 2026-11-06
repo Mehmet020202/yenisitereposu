@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Y&#246;netim Paneli - ALTU&#286; KUYUMCULUK</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-page">
+
+<div id="admin-topbar">
+  <span class="topbar-brand">ALTU&#286; KUYUMCULUK &middot; Y&#246;netim</span>
+  <span id="topbar-user" class="topbar-user">-</span>
+  <button id="btn-logout" class="btn btn-small">&#199;&#305;KI&#350;</button>
+  <a href="tv.html" target="_blank" class="btn btn-small btn-outline">TV EKRANI</a>
+</div>
+
+<div id="admin-layout">
+  <!-- SOL MENU -->
+  <div id="admin-menu">
+    <button class="menu-item active" data-section="sec-overview">1. Genel Bak&#305;&#351;</button>
+    <button class="menu-item" data-section="sec-market">2. Canl&#305; Piyasa</button>
+    <button class="menu-item" data-section="sec-products">3. &#220;r&#252;n Y&#246;netimi</button>
+    <button class="menu-item" data-section="sec-has">4. HAS Referans&#305;</button>
+    <button class="menu-item" data-section="sec-usd">5. USD Ayarlar&#305;</button>
+    <button class="menu-item" data-section="sec-eur">6. EUR Ayarlar&#305;</button>
+    <button class="menu-item" data-section="sec-tvview">7. TV G&#246;r&#252;n&#252;m</button>
+    <button class="menu-item" data-section="sec-ads">8. Reklam Y&#246;netimi</button>
+    <button class="menu-item" data-section="sec-branding">9. Logo ve Tasar&#305;m</button>
+    <button class="menu-item" data-section="sec-conn">10. Ba&#287;lant&#305; Durumu</button>
+    <button class="menu-item" data-section="sec-users">11. Kullan&#305;c&#305; ve G&#252;venlik</button>
+    <button class="menu-item" data-section="sec-logs">12. &#304;&#351;lem Ge&#231;mi&#351;i</button>
+    <button class="menu-item" data-section="sec-preview">13. TV &#214;nizleme</button>
+    <button class="menu-item" data-section="sec-themes">14. Kullanıcı Ekranı Tasarımı</button>
+    <div id="sec-setup-box" style="display:none">
+      <button class="menu-item menu-setup" id="btn-run-seed">&#9888; Kurulum / &#214;ny&#252;kleme</button>
+    </div>
+  </div>
+
+  <!-- IÇERİK -->
+  <div id="admin-content">
+
+    <div class="section" id="sec-overview">
+      <h2>Genel Bak&#305;&#351;</h2>
+      <div id="ov-cards" class="cards"></div>
+    </div>
+
+    <div class="section" id="sec-market" style="display:none">
+      <h2>Canl&#305; Piyasa (Harem Ham Fiyatlar&#305;)</h2>
+      <div class="tbl-scroll">
+      <table class="tbl" id="market-table">
+        <tr><th>Sembol</th><th>Ham Al&#305;&#351;</th><th>Ham Sat&#305;&#351;</th><th>M&#252;&#351;teri Ekran&#305; (hesaplanan)</th></tr>
+        <tr><td>HAS ALTIN</td><td id="mk-has-buy">-</td><td id="mk-has-sell">-</td><td id="mk-has-calc">-</td></tr>
+        <tr><td>USD</td><td id="mk-usd-buy">-</td><td id="mk-usd-sell">-</td><td id="mk-usd-calc">-</td></tr>
+        <tr><td>EUR</td><td id="mk-eur-buy">-</td><td id="mk-eur-sell">-</td><td id="mk-eur-calc">-</td></tr>
+      </table>
+      </div>
+      <p class="muted">Son g&#252;ncelleme: <span id="mk-updated">-</span> &middot; Kaynak: <span id="mk-source">-</span></p>
+    </div>
+
+    <div class="section" id="sec-products" style="display:none">
+      <h2>&#220;r&#252;n Y&#246;netimi</h2>
+      <div class="panel">
+        <input type="text" id="np-name" placeholder="&#220;r&#252;n ad&#305;">
+        <input type="text" id="np-buy" placeholder="Al&#305;&#351; &#231;arpan&#305; (örn. 6,36)">
+        <input type="text" id="np-sell" placeholder="Sat&#305;&#351; &#231;arpan&#305; (örn. 6,50)">
+        <input type="text" id="np-img" placeholder="G&#246;rsel URL (isteğe bağlı)">
+        <button class="btn" id="btn-add-product">&#220;R&#286;N EKLE</button>
+      </div>
+      <div class="tbl-scroll"><table class="tbl" id="products-table"></table></div>
+    </div>
+
+    <div class="section" id="sec-has" style="display:none">
+      <h2>ORTAK HAS REFERANSI</h2>
+      <p class="muted">Se&#231;im; t&#252;m &#252;rünlerin ALI&#350; ve SATI&#350; hesaplar&#305;n&#305;n temelini belirler. &#304;ki fiyat da AYNI referanstan hesaplan&#305;r.</p>
+      <label class="radio-line"><input type="radio" name="goldref" value="has_buy" id="gr-buy"> Harem HAS ALI&#350;</label>
+      <label class="radio-line"><input type="radio" name="goldref" value="has_sell" id="gr-sell"> Harem HAS SATI&#350;</label>
+      <div id="has-preview" class="preview-box"></div>
+    </div>
+
+    <div class="section" id="sec-usd" style="display:none">
+      <h2>USD Ayarlar&#305; (Sabit TL D&#252;zeltmesi)</h2>
+      <label>USD Al&#305;&#351; D&#252;zeltmesi (TL, örn: 0,20 veya -0,50)</label>
+      <input type="text" id="usd-buy-adj">
+      <label>USD Sat&#305;&#351; D&#252;zeltmesi (TL)</label>
+      <input type="text" id="usd-sell-adj">
+      <label class="check-line"><input type="checkbox" id="usd-show" checked> USD TV'de g&#246;sterilsin</label>
+      <select id="usd-mode">
+        <option value="both">Al&#305;&#351; ve Sat&#305;&#351;</option>
+        <option value="buy">Yaln&#305;zca Al&#305;&#351;</option>
+        <option value="sell">Yaln&#305;zca Sat&#305;&#351;</option>
+      </select>
+      <div id="usd-preview" class="preview-box"></div>
+    </div>
+
+    <div class="section" id="sec-eur" style="display:none">
+      <h2>EUR Ayarlar&#305; (Sabit TL D&#252;zeltmesi)</h2>
+      <label>EUR Al&#305;&#351; D&#252;zeltmesi (TL)</label>
+      <input type="text" id="eur-buy-adj">
+      <label>EUR Sat&#305;&#351; D&#252;zeltmesi (TL)</label>
+      <input type="text" id="eur-sell-adj">
+      <label class="check-line"><input type="checkbox" id="eur-show" checked> EUR TV'de g&#246;sterilsin</label>
+      <select id="eur-mode">
+        <option value="both">Al&#305;&#351; ve Sat&#305;&#351;</option>
+        <option value="buy">Yaln&#305;zca Al&#305;&#351;</option>
+        <option value="sell">Yaln&#305;zca Sat&#305;&#351;</option>
+      </select>
+      <div id="eur-preview" class="preview-box"></div>
+    </div>
+
+    <div class="section" id="sec-tvview" style="display:none">
+      <h2>TV G&#246;r&#252;n&#252;m Ayarlar&#305;</h2>
+      <label>Alt&#305;n fiyat g&#246;sterim modu</label>
+      <select id="gold-mode">
+        <option value="both">Al&#305;&#351; ve Sat&#305;&#351;</option>
+        <option value="buy">Yaln&#305;zca Al&#305;&#351;</option>
+        <option value="sell">Yaln&#305;zca Sat&#305;&#351;</option>
+      </select>
+      <label>Ekran temas&#305;</label>
+      <select id="tv-theme-select">
+        <option value="dark">Premium Koyu (varsay&#305;lan)</option>
+        <option value="light">A&#231;&#305;k (Beyaz)</option>
+        <option value="navy">Lacivert (Alt&#305;n Vurgu)</option>
+        <option value="classic">Klasik / Minimal</option>
+      </select>
+      <label class="check-line"><input type="checkbox" id="cur-section-hide"> D&#246;viz b&#246;l&#252;m&#252;n&#252; tamamen gizle</label>
+      <label>TV alt bilgi notu</label>
+      <input type="text" id="tv-note-input" maxlength="120">
+      <label class="check-line"><input type="checkbox" id="theme-switch-show"> TV ekran&#305;nda tema de&#287;i&#351;tirme butonu g&#246;ster</label>
+      <label class="check-line"><input type="checkbox" id="wa-enable"> WhatsApp butonunu g&#246;ster</label>
+      <label>WhatsApp numaras&#305; (&#252;lke kodlu, &#246;rn. 905432405202)</label>
+      <input type="text" id="wa-number" maxlength="20" placeholder="905432405202">
+      <label>WhatsApp haz&#305;r mesaj&#305;</label>
+      <input type="text" id="wa-message" maxlength="200">
+      <label style="margin-top:14px">IBAN Bilgileri (her sat&#305;r bir hesap: Banka | Hesap Sahibi | IBAN)</label>
+      <textarea id="iban-input" rows="6" style="width:100%;box-sizing:border-box;font-family:monospace" placeholder="Ziraat Bankas&#305; | Mehmet Altu&#287; | TR70 0001 0003 9970 8936 7450 03"></textarea>
+      <button class="btn" id="btn-save-tvview">KAYDET</button>
+    </div>
+
+    <div class="section" id="sec-ads" style="display:none">
+      <h2>Reklam Y&#246;netimi</h2>
+      <div class="panel">
+        <input type="text" id="ad-title" placeholder="Ba&#351;l&#305;k">
+        <input type="text" id="ad-desc" placeholder="A&#231;&#305;klama">
+        <input type="text" id="ad-img" placeholder="G&#246;rsel URL (veya dosyadan y&#252;kle)">
+        <input type="file" id="ad-file" accept="image/*" style="display:none">
+        <button class="btn btn-small" id="btn-ad-upload" type="button">DOSYADAN Y&#220;KLE</button>
+        <span id="ad-upload-status" class="muted"></span>
+        <input type="text" id="ad-dur" placeholder="G&#246;sterim s&#252;resi (sn, örn: 10)">
+        <button class="btn" id="btn-add-ad">REKLAM EKLE</button>
+      </div>
+      <div class="tbl-scroll"><table class="tbl" id="ads-table"></table></div>
+    </div>
+
+    <div class="section" id="sec-branding" style="display:none">
+      <h2>Logo ve Tasar&#305;m</h2>
+      <label>Ma&#287;aza ad&#305;</label>
+      <input type="text" id="brand-name-input">
+      <label>Logo URL</label>
+      <input type="text" id="brand-logo-input">
+      <input type="file" id="brand-logo-file" accept="image/*" style="display:none">
+      <button class="btn btn-small" id="btn-logo-upload" type="button">LOGO Y&#220;KLE</button>
+      <span id="logo-upload-status" class="muted"></span>
+      <button class="btn" id="btn-save-branding">KAYDET</button>
+    </div>
+
+    <div class="section" id="sec-conn" style="display:none">
+      <h2>Ba&#287;lant&#305; Durumu</h2>
+      <div id="conn-box" class="preview-box">-</div>
+      <p class="muted">Bu alan bulut fiyat toplama hizmeti taraf&#305;ndan her 60 sn'de bir g&#252;ncellenir.</p>
+    </div>
+
+    <div class="section" id="sec-users" style="display:none">
+      <h2>Kullan&#305;c&#305; ve G&#252;venlik</h2>
+      <p class="muted">Yazma yetkisi Firebase Security Rules ile <b>rootAdminUid</b> olarak belirlenen kullan&#305;c&#305;ya ba&#287;l&#305;d&#305;r.</p>
+      <label>Root Admin UID</label>
+      <input type="text" id="admin-uid-input" placeholder="Firebase Console - Authentication - UID">
+      <button class="btn" id="btn-save-admin">KAYDET</button>
+      <div id="admin-uid-current" class="preview-box">-</div>
+    </div>
+
+    <div class="section" id="sec-logs" style="display:none">
+      <h2>&#304;&#351;lem Ge&#231;mi&#351;i</h2>
+      <div class="tbl-scroll"><table class="tbl" id="logs-table"></table></div>
+    </div>
+
+    <div class="section" id="sec-preview" style="display:none">
+      <h2>TV &#214;nizleme</h2>
+      <div class="preview-frame-wrap">
+        <iframe id="tv-preview-frame" src="tv.html" title="TV &#214;nizleme"></iframe>
+      </div>
+    </div>
+
+    <!-- KULLANICI EKRANI TASARIM YONETIMI (TALIMAT bolum 4/5):
+         tasarımlar kartlarla ThemeRegistry'den gelir; önizleme gerçek veriyle
+         çalışır, yayınla butonu settings.activeUserTheme'e yazar (admin-only). -->
+    <div class="section" id="sec-themes" style="display:none">
+      <h2>Kullan&#305;c&#305; Ekran&#305; Tasar&#305;m Y&#246;netimi</h2>
+      <p class="muted">Kullan&#305;c&#305; ekran&#305; tasar&#305;m&#305;n&#305; se&#231;in. &#214;nce &#246;nizleyin; <b>UYGULA VE YAYINLA</b> se&#231;ilene kadar yay&#305;nlanan tasar&#305;m de&#287;i&#351;mez. Yay&#305;nlanan tasar&#305;m TV, telefon ve bilgisayarlarda sayfa yenilemeden an&#305;nda ge&#231;erli olur. T&#252;m tasarl&#305;mlar ayn&#305; canl&#305; veri kayna&#287;&#305;n&#305; ve ayn&#305; fiyat hesaplama motorunu kullan&#305;r.</p>
+      <div id="theme-cards" class="theme-cards"></div>
+      <div id="theme-revert-wrap" style="display:none">
+        <button class="btn btn-outline" id="btn-theme-revert" type="button">&#8592; ESK&#304; TASARIMA D&#214;N</button>
+        <span id="theme-revert-info" class="muted"></span>
+      </div>
+      <div id="theme-preview-wrap" style="display:none">
+        <h3>&#214;nizleme: <span id="theme-preview-name"></span>
+          <span class="muted">&#183; ger&#231;ek &#252;r&#252;nler, ger&#231;ek canl&#305; fiyatlar &#8212; yay&#305;nlanan tasar&#305;m de&#287;i&#351;medi</span></h3>
+        <div class="theme-dev-btns">
+          <button class="btn-x" data-dev="mobile" type="button">MOB&#304;L</button>
+          <button class="btn-x" data-dev="desktop" type="button">MASA&#220;ST&#220;</button>
+          <button class="btn-x" data-dev="tv" type="button">TV</button>
+          <button class="btn-x" id="btn-theme-preview-close" type="button">KAPAT</button>
+        </div>
+        <div id="theme-preview-stage" class="dev-desktop">
+          <iframe id="theme-preview-frame" title="Tasar&#305;m &#214;nizleme" src="about:blank"></iframe>
+        </div>
+        <div class="theme-publish-row">
+          <button class="btn" id="btn-theme-publish-preview" type="button">UYGULA VE YAY&#304;NLA</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="edit-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">&#220;r&#252;n&#252; D&#252;zenle</div>
+    <label>&#220;r&#252;n ad&#305;</label>
+    <input type="text" id="edit-name" maxlength="60">
+    <label>Al&#305;&#351; &#231;arpan&#305;</label>
+    <input type="text" id="edit-buy">
+    <label>Sat&#305;&#351; &#231;arpan&#305;</label>
+    <input type="text" id="edit-sell">
+    <div id="edit-error" class="modal-error"></div>
+    <div class="modal-actions">
+      <button class="btn" id="edit-save" type="button">KAYDET</button>
+      <button class="btn btn-ghost" id="edit-cancel" type="button">VAZGE&#199;</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Firebase v8.10.1 TEK YEREL SDK (monolitik UMD). CDN ile karistirilmaz:
+     cift SDK yuklemesi RTDB okumalarini bozar. Guncelleme: tools/get-sdk.js -->
+<script src="js/lib/firebase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/price-validator.js"></script>
+<script src="js/price-engine.js"></script>
+<script src="js/price-formatter.js"></script>
+<script src="js/db.js"></script>
+<script src="js/theme-registry.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
