@@ -222,10 +222,12 @@
 
   /* ---------- CANLI HAREM YEDEGI (tarayici dogrudan socket) ----------
    * Firebase marketPrices bayat oldugunda (bulut ingestion calismiyor) admin
-   * de TV gibi dogrudan Harem socket'e baglanip CANLI fiyati gosterir.
-   * YALNIZ ekranda; Firebase'e yazilmaz. config.allowBrowserFallback=true iken. */
+   * dogrudan Harem socket'e baglanir; gosterir ve yetkili oturumla yazar. */
   var haremAdminSocket = null, haremAdminRetryMs = 5000, haremAdminTimer = null;
   var haremAdminEventTime = 0;
+  var haremAdminLastEventAt = 0;
+  var haremAdminSilenceLimitMs = 5 * 60 * 1000;
+  var haremAdminWatchdogTimer = null;
 
   /* SDK'yi sirayla kaynaklardan yukle (biri engelliyse digeri denenir). */
   function loadScriptAdminList(list, idx, onOk) {
@@ -249,6 +251,24 @@
     haremAdminRetryMs = Math.min(haremAdminRetryMs * 2, 60000);
   }
 
+  function startHaremAdminWatchdog() {
+    if (haremAdminWatchdogTimer) { return; }
+    haremAdminWatchdogTimer = setInterval(function () {
+      var socket = haremAdminSocket;
+      if (!socket || !socket.connected ||
+          !PriceFormatter.isFeedSilent(haremAdminLastEventAt, Date.now(),
+            haremAdminSilenceLimitMs)) { return; }
+      if (window.console && console.warn) {
+        console.warn("Harem admin akisi sessiz; baglanti yenileniyor");
+      }
+      haremAdminSocket = null;
+      haremAdminLastEventAt = Date.now();
+      haremAdminSilenceLimitMs = Math.min(haremAdminSilenceLimitMs * 2, 30 * 60 * 1000);
+      try { socket.close(); } catch (e) {}
+      scheduleHaremAdminRetry();
+    }, 30000);
+  }
+
   /* Polling once, WebSocket'e yukseltilir: WebSocket'i olmayan eski
    * tarayicilarda da canli yedek calisir (onceden yalniz websocket idi). */
   var haremAdminUsePolling = false;
@@ -266,21 +286,30 @@
         timeout: 20000,
         forceNew: true
       });
-      haremAdminSocket.on("price_changed", applyHaremPayload);
-      haremAdminSocket.on("connect", function () {
+      var socket = haremAdminSocket;
+      startHaremAdminWatchdog();
+      socket.on("price_changed", function (payload) {
+        if (haremAdminSocket === socket) { applyHaremPayload(payload); }
+      });
+      socket.on("connect", function () {
+        if (haremAdminSocket !== socket) { return; }
         haremAdminRetryMs = 5000;
+        haremAdminLastEventAt = Date.now();
         try {
-          haremAdminSocket.emit("subscribe", ["ALTIN", "USDTRY", "EURTRY"]);
-          setTimeout(function () { try { haremAdminSocket.emit("subscribe", { symbols: ["ALTIN", "USDTRY", "EURTRY"] }); } catch (e) {} }, 1500);
-          setTimeout(function () { try { haremAdminSocket.emit("join", ["ALTIN", "USDTRY", "EURTRY"]); } catch (e) {} }, 3000);
+          socket.emit("subscribe", ["ALTIN", "USDTRY", "EURTRY"]);
+          setTimeout(function () { try { if (haremAdminSocket === socket) { socket.emit("subscribe", { symbols: ["ALTIN", "USDTRY", "EURTRY"] }); } } catch (e) {} }, 1500);
+          setTimeout(function () { try { if (haremAdminSocket === socket) { socket.emit("join", ["ALTIN", "USDTRY", "EURTRY"]); } } catch (e) {} }, 3000);
         } catch (e) {}
       });
-      haremAdminSocket.on("disconnect", function () { scheduleHaremAdminRetry(); });
+      socket.on("disconnect", function () {
+        if (haremAdminSocket === socket) { scheduleHaremAdminRetry(); }
+      });
       /* WebSocket yoksa/engellendiyse polling denenir; o da olmazsa
        * artan bekleme ile yeniden denenir. */
-      haremAdminSocket.on("connect_error", function () {
-        try { haremAdminSocket.close(); } catch (e) {}
+      socket.on("connect_error", function () {
+        if (haremAdminSocket !== socket) { return; }
         haremAdminSocket = null;
+        try { socket.close(); } catch (e) {}
         haremAdminUsePolling = !haremAdminUsePolling;
         scheduleHaremAdminRetry();
       });
@@ -307,17 +336,20 @@
       }
       if (!out.hasBuy && !out.usdBuy) { return; }
       var receivedAt = Date.now();
-      var t = (res.meta && isFinite(Number(res.meta.time)) && Number(res.meta.time) > 0)
-        ? Number(res.meta.time) : receivedAt;
+      haremAdminLastEventAt = receivedAt;
+      haremAdminSilenceLimitMs = 5 * 60 * 1000;
+      var sourceTime = res.meta && isFinite(Number(res.meta.time))
+        ? Number(res.meta.time) : 0;
+      var t = PriceFormatter.normalizeMarketTime(sourceTime, receivedAt,
+        (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000);
       if (haremAdminEventTime && t < haremAdminEventTime) { return; }
-      var currentMarketTime = state.market.marketTime ||
-        (state.market.source === "harem" ? state.market.updatedAt : 0);
-      if (currentMarketTime && t < currentMarketTime) { return; }
       if (!PriceFormatter.freshnessInfo(t, receivedAt,
           (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000).fresh) { return; }
       haremAdminEventTime = Math.max(haremAdminEventTime, t);
+      var cloudAge = state.market && state.market.updatedAt
+        ? receivedAt - Number(state.market.updatedAt) : Infinity;
       var cloudFresh = state.market && state.market.source !== "browser-fallback" &&
-        state.market.updatedAt && (receivedAt - state.market.updatedAt < 180000);
+        cloudAge >= 0 && cloudAge < 180000;
       if (cloudFresh) { return; }
       var merged = {}, k;
       if (state.market) { for (k in state.market) { if (state.market.hasOwnProperty(k)) { merged[k] = state.market[k]; } } }
@@ -361,6 +393,8 @@
       AppDb.update("marketPrices", fbPayload, function (err) {
         if (!err) {
           AppDb.update("connectionStatus", { harem: "connected", note: "admin paneli canli akisi", at: Date.now() });
+        } else if (window.console && console.error) {
+          console.error("Harem canlı fiyatı Firebase'e yazılamadı: " + err.message);
         }
       });
     } catch (e) {}

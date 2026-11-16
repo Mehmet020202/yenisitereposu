@@ -36,6 +36,27 @@ function toNumber(raw) {
   return isFinite(n) ? n : NaN;
 }
 
+function normalizeMarketTime(sourceTime, receivedAt, maxSkewMs) {
+  const source = Number(sourceTime);
+  const received = Number(receivedAt);
+  let skew = Number(maxSkewMs);
+  if (!Number.isFinite(received) || received <= 0) return Date.now();
+  if (!Number.isFinite(skew) || skew <= 0) skew = 180000;
+  if (!Number.isFinite(source) || source <= 0 ||
+      Math.abs(received - source) > skew) {
+    return received;
+  }
+  return source;
+}
+
+function isFeedSilent(lastEventAt, now, maxSilenceMs) {
+  const last = Number(lastEventAt);
+  const current = Number(now);
+  const limit = Number(maxSilenceMs);
+  return Number.isFinite(last) && last > 0 && Number.isFinite(current) &&
+    Number.isFinite(limit) && limit > 0 && current - last >= limit;
+}
+
 /* Tek bir price_changed kaydı -> { hasBuy..eurSell } kısmi nesnesi.
  * Eşleşme yoksa null döner (bilinmeyen sembol sessizce yoksayılır). */
 function mapPriceMessage(symbol, payload) {
@@ -82,4 +103,11 @@ function validateFieldPair(field, value, previous, maxJumpRatio) {
   return { ok: true, value: value };
 }
 
-module.exports = { FIELD_MAP, toNumber, mapPriceMessage, validateFieldPair };
+module.exports = {
+  FIELD_MAP,
+  toNumber,
+  normalizeMarketTime,
+  isFeedSilent,
+  mapPriceMessage,
+  validateFieldPair
+};

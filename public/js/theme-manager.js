@@ -5,7 +5,7 @@
  * cozumler, tv.html icindeki dogru tasarim kokunu gosterir.
  *
  * ONEMLI TASARIM KURALI (TALIMAT bolum 7): Bu yonetici HICBIR veri
- * baglantisi acmaz. Harem socket, Firebase REST poll ve fiyat motoru
+ * baglantisi acmaz. Harem socket, Firebase RTDB stream ve fiyat motoru
  * tv.js'de (tek katman) kalmaya devam eder; tasarim degisince yalnizca
  * gorunen DOM kökü değişir, baglanti kesilmez.
  *

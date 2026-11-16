@@ -119,6 +119,30 @@ t("Tazelik: 5 dk onceki veri 'guncel degil'", () => {
   assert.strictEqual(fresh.fresh, true);
 });
 
+t("Harem zaman damgasi 6 saat gerideyse alis zamani kullanilir", () => {
+  const now = Date.now();
+  assert.strictEqual(
+    PriceFormatter.normalizeMarketTime(now - 6 * 60 * 60 * 1000, now, 180000),
+    now
+  );
+  assert.strictEqual(
+    PriceFormatter.normalizeMarketTime(now - 5000, now, 180000),
+    now - 5000
+  );
+  assert.strictEqual(
+    HaremMap.normalizeMarketTime(now - 6 * 60 * 60 * 1000, now, 180000),
+    now
+  );
+});
+
+t("Sessiz kalan canli akis 5 dakika sinirinda tespit edilir", () => {
+  const now = Date.now();
+  const lastEvent = now - 5 * 60 * 1000;
+  assert.strictEqual(PriceFormatter.isFeedSilent(lastEvent, now, 5 * 60 * 1000), true);
+  assert.strictEqual(PriceFormatter.isFeedSilent(now - 4 * 60 * 1000, now, 5 * 60 * 1000), false);
+  assert.strictEqual(HaremMap.isFeedSilent(lastEvent, now, 5 * 60 * 1000), true);
+});
+
 /* ---- CANLI DOGRULANMIS Harem semasi uzerinden uctan uca test ----
  * 2026-11-03 probe'undan gercek price_changed ornegi (ag gerektirmez). */
 const REAL_PAYLOAD = {

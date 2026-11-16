@@ -24,7 +24,8 @@ Firebase Realtime Database  (ham fiyatlar + ayarlar + ürünler + reklamlar)
         ▼
  Admin paneli (/admin)          TV ekranı (/tv)
   e-posta+şifre ile giriş        kimlik doğrulama YOK (salt okuma)
-  hesaplamalar anında TV'ye      Firebase REST poll ile güncellenir
+  hesaplamalar anında TV'ye      Firebase REST SSE (desteklenmezse poll) ile
+  yansır                         anlık güncellenir
   yansır (RTDB aboneliği)        bayat akışta Harem tarayıcı yedeği
 ```
 
@@ -51,7 +52,10 @@ Bu nedenle "tek bağlantı" yalnızca normal/bulut akışı için geçerlidir.
    Sunucudan gerçek `price_changed` akışı yakalandı. Kesin yapı:
    `{ meta:{time:<ms>}, data:{ ALTIN:{alis,satis,...}, USDTRY:{...}, EURTRY:{...}, ... } }`
    — fiyatlar `data` altındadır; değerler kimi sembollerde string ("50.0700"), kimi sayı.
-   `updatedAt` için `meta.time` (gerçek piyasa saati) kullanılır. Abonelik şart değildir;
+   `meta.time` alım saatiyle en fazla 3 dakika sapıyorsa piyasa saati olarak kullanılır;
+   daha büyük sapmalarda (ör. altı saatlik Harem damga hatası) canlı olayın alındığı
+   an kullanılır. Böylece hatalı kaynak saati fiyatı canlı senkronizasyondan düşürmez.
+   Abonelik şart değildir;
    sunucu bağlantı anında otomatik yayar. Örnek anlık değerler: ALTIN 6369,49 · USDTRY
    50,07/50,15 · EURTRY 55,85/56,00. Şema artık varsayım değil, gözlem sonuçudur.
 4. Harem kullanım koşullarını ihlal eden hiçbir yöntem (CAPTCHA/Cloudflare

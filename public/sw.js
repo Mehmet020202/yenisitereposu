@@ -14,7 +14,7 @@
  * ===================================================================== */
 "use strict";
 
-var CACHE_NAME = "altug-pwa-v4";
+var CACHE_NAME = "altug-pwa-v5";
 
 /* Goreli yollar: site alt klasorde yayinlansa da (or. /site/) calisir. */
 var SHELL = [

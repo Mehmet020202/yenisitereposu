@@ -442,27 +442,15 @@
     showNext();
   }
 
-  /* ---------- 4) VERI ABONELIKLERI (REST POLL - SDK cokmesine dayanikli) ----------
-   * Okumalar AppDb.poll (Firebase REST ".json") ile yapilir; boylece v8 compat
-   * SDK'sinin bazi tarayicilardaki cok-alanli snapshot cökmesi (isEmpty) ekranı
-   * bos birakamaz. Firebase birincil kaynak; canli fiyat icin Harem socket
+  /* ---------- 4) VERI ABONELIKLERI (RTDB SSE + REST yedegi) ----------
+   * EventSource varsa Firebase degisiklikleri aninda gelir; eski TV veya ag
+   * hatasinda AppDb.subscribe XHR poll yedegine iner. Firebase birincil kaynak;
+   * canli fiyat icin Harem socket
    * yedegi (asagida) marketPrices'i tazeler. marketPrices tazelik korumasiyla
    * guncellenir: daha ESKI bir deger daha CANLI olanin uzerine yazilmaz. */
   function subscribeAll() {
-    var pollMs = 15000;
-    AppDb.poll("settings", function (v) { state.settings = v || {}; renderAll(); }, pollMs);
-    AppDb.poll("products", function (v) { state.products = v || {}; renderAll(); }, pollMs);
-    AppDb.poll("currencyAdjustments", function (v) { state.adjustments = v || {}; renderCurrencies(); renderTheme2(); }, pollMs);
-    AppDb.poll("advertisements", function (v) { state.ads = v || {}; startAdRotation(); }, pollMs);
-    AppDb.poll("connectionStatus", function (v) { state.status = v || {}; renderLiveDot(); renderTheme2(); }, pollMs);
-    AppDb.poll("branding", function (v) {
-      state.branding = v || {};
-      var logo = byId("tv-logo"), brand = byId("tv-brand-name");
-      if (logo && v && v.logoUrl) { logo.style.display = ""; logo.src = v.logoUrl; }
-      if (brand && v && v.name && brand.firstChild) { brand.firstChild.nodeValue = v.name; }
-      renderTheme2();
-    }, pollMs);
-    AppDb.poll("marketPrices", function (v) {
+    var pollMs = 5000;
+    AppDb.subscribe("marketPrices", function (v) {
       if (!v) { return; }
       var cur = state.market && state.market.updatedAt ? state.market.updatedAt : 0;
       var inc = v.updatedAt ? v.updatedAt : 0;
@@ -471,6 +459,18 @@
         try { AppDb.cacheMarket(v); } catch (e) {}
       }
       renderAll();
+    }, pollMs);
+    AppDb.subscribe("settings", function (v) { state.settings = v || {}; renderAll(); }, pollMs);
+    AppDb.subscribe("products", function (v) { state.products = v || {}; renderAll(); }, pollMs);
+    AppDb.subscribe("currencyAdjustments", function (v) { state.adjustments = v || {}; renderCurrencies(); renderTheme2(); }, pollMs);
+    AppDb.subscribe("advertisements", function (v) { state.ads = v || {}; startAdRotation(); }, pollMs);
+    AppDb.poll("connectionStatus", function (v) { state.status = v || {}; renderLiveDot(); renderTheme2(); }, pollMs);
+    AppDb.poll("branding", function (v) {
+      state.branding = v || {};
+      var logo = byId("tv-logo"), brand = byId("tv-brand-name");
+      if (logo && v && v.logoUrl) { logo.style.display = ""; logo.src = v.logoUrl; }
+      if (brand && v && v.name && brand.firstChild) { brand.firstChild.nodeValue = v.name; }
+      renderTheme2();
     }, pollMs);
     /* Canlilik gostergesi 15 sn'de bir tazeligi yeniden kontrol etsin */
     setInterval(function () { try { renderLiveDot(); renderUpdated(); renderTheme2(); } catch (e) {} }, 15000);
@@ -498,6 +498,9 @@
   var haremRetryMs = 5000;
   var haremRetryTimer = null;
   var haremLastEventTime = 0;
+  var haremLastPayloadAt = 0;
+  var haremSilenceLimitMs = 5 * 60 * 1000;
+  var haremWatchdogTimer = null;
 
   /* SDK'yi sirayla kaynaklardan yukle (biri engelliyse digeri denenir). */
   function loadScriptList(list, idx, onOk) {
@@ -522,6 +525,24 @@
     haremRetryMs = Math.min(haremRetryMs * 2, 60000);
   }
 
+  function startHaremWatchdog() {
+    if (haremWatchdogTimer) { return; }
+    haremWatchdogTimer = setInterval(function () {
+      var socket = haremSocket;
+      if (!socket || !socket.connected ||
+          !PriceFormatter.isFeedSilent(haremLastPayloadAt, Date.now(),
+            haremSilenceLimitMs)) { return; }
+      if (window.console && console.warn) {
+        console.warn("Harem TV akisi sessiz; baglanti yenileniyor");
+      }
+      haremSocket = null;
+      haremLastPayloadAt = Date.now();
+      haremSilenceLimitMs = Math.min(haremSilenceLimitMs * 2, 30 * 60 * 1000);
+      try { socket.close(); } catch (e) {}
+      scheduleHaremRetry();
+    }, 30000);
+  }
+
   /* Eski TV tarayicilarinda WebSocket bulunmayabilir: baglanti once
    * uzun-polling ile kurulur, destekleniyorsa WebSocket'e yukseltilir.
    * Onceden transports=["websocket"] sabitti; WebSocket'i olmayan cihazda
@@ -542,21 +563,30 @@
         timeout: 20000,
         forceNew: true
       });
-      haremSocket.on("price_changed", applyFallbackPayload);
-      haremSocket.on("connect", function () {
+      var socket = haremSocket;
+      startHaremWatchdog();
+      socket.on("price_changed", function (payload) {
+        if (haremSocket === socket) { applyFallbackPayload(payload); }
+      });
+      socket.on("connect", function () {
+        if (haremSocket !== socket) { return; }
         haremRetryMs = 5000;
+        haremLastPayloadAt = Date.now();
         try {
-          haremSocket.emit("subscribe", ["ALTIN", "USDTRY", "EURTRY"]);
-          setTimeout(function () { try { haremSocket.emit("subscribe", { symbols: ["ALTIN", "USDTRY", "EURTRY"] }); } catch (e) {} }, 1500);
-          setTimeout(function () { try { haremSocket.emit("join", ["ALTIN", "USDTRY", "EURTRY"]); } catch (e) {} }, 3000);
+          socket.emit("subscribe", ["ALTIN", "USDTRY", "EURTRY"]);
+          setTimeout(function () { try { if (haremSocket === socket) { socket.emit("subscribe", { symbols: ["ALTIN", "USDTRY", "EURTRY"] }); } } catch (e) {} }, 1500);
+          setTimeout(function () { try { if (haremSocket === socket) { socket.emit("join", ["ALTIN", "USDTRY", "EURTRY"]); } } catch (e) {} }, 3000);
         } catch (e) {}
       });
-      haremSocket.on("disconnect", function () { scheduleHaremRetry(); });
+      socket.on("disconnect", function () {
+        if (haremSocket === socket) { scheduleHaremRetry(); }
+      });
       /* WebSocket yoksa/engellendiyse polling denenir (eski TV icin tek
        * sans); polling de olmazsa artan bekleme ile yeniden denenir. */
-      haremSocket.on("connect_error", function () {
-        try { haremSocket.close(); } catch (e) {}
+      socket.on("connect_error", function () {
+        if (haremSocket !== socket) { return; }
         haremSocket = null;
+        try { socket.close(); } catch (e) {}
         haremUsePolling = !haremUsePolling;
         scheduleHaremRetry();
       });
@@ -591,22 +621,22 @@
       }
       if (!out.hasBuy && !out.usdBuy) { return; }
       var receivedAt = Date.now();
-      var t = (res.meta && isFinite(Number(res.meta.time)) && Number(res.meta.time) > 0)
-        ? Number(res.meta.time) : receivedAt;
+      haremLastPayloadAt = receivedAt;
+      haremSilenceLimitMs = 5 * 60 * 1000;
+      var sourceTime = res.meta && isFinite(Number(res.meta.time))
+        ? Number(res.meta.time) : 0;
+      var t = PriceFormatter.normalizeMarketTime(sourceTime, receivedAt,
+        (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000);
       if (haremLastEventTime && t < haremLastEventTime) { return; }
       if (!PriceFormatter.freshnessInfo(t, receivedAt,
           (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000).fresh) { return; }
       haremLastEventTime = Math.max(haremLastEventTime, t);
       /* Bulut akisi son 3 dakika icinde geldiyse ve gercekten tazeyse yedek yerine bulut kalir */
       var cloudFresh = state.market && state.market.source !== "browser-fallback" &&
-        state.market.updatedAt && PriceFormatter.freshnessInfo(
-          state.market.updatedAt, receivedAt,
-          (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000
-        ).fresh;
+        state.market.updatedAt && receivedAt >= Number(state.market.updatedAt) &&
+        receivedAt - Number(state.market.updatedAt) <
+          ((window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000);
       if (cloudFresh) { return; }
-      var currentMarketTime = state.market && (state.market.marketTime ||
-        (state.market.source === "harem" ? state.market.updatedAt : 0));
-      if (currentMarketTime && t < currentMarketTime) { return; }
       var merged = {}, k;
       if (state.market) {
         for (k in state.market) {
@@ -660,7 +690,7 @@
       }
     } catch (e) {}
     renderFromCache();
-    /* Okumalar REST poll ile yapilir (SDK snapshot cokmesinden bagimsiz);
+    /* AppDb.subscribe SSE kullanir, eski tarayiciya REST poll yedegi sunar;
      * Firebase SDK yuklenmemis olsa bile ekran dolar. */
     try { subscribeAll(); } catch (e) {}
     /* Yedek Harem baglantisi canli fiyati besler (config bayragi aciksa;

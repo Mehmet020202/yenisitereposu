@@ -23,6 +23,8 @@ var AppDb = (function () {
   var storageSvc = null;
   var connected = false;
   var disconnectHandlers = [];
+  var activeStreamCount = 0;
+  var maxActiveStreams = 5;
 
   /* localStorage erişimi güvenli sarmalayıcı (TV sandbox'ında kapalı olabilir) */
   function safeGet(key) {
@@ -100,15 +102,204 @@ var AppDb = (function () {
     return useCompat ? root.ref(path) : root.child(path);
   }
 
-  /* Bir yolu dinle; her değişimde handler(val) çağrılır.
-   * ONEMLI: SDK'nin cok-alanli snapshot okumasi bazi tarayicilarda
-   * 'isEmpty' ile cokuyor; bu yuzden dinleme REST poll ile yapilir
-   * (auth-farkinda restGet; yazma/auth SDK'da kalir). */
-  function subscribe(path, handler) {
-    return poll(path, handler, 5000);
+  /* Bir yolu dinle; RTDB REST SSE varsa anlik akisi kullan, eski tarayici
+   * veya ag hatasinda auth-farkinda REST poll'a geri don. */
+  function subscribe(path, handler, intervalMs) {
+    handler = handler || function () {};
+    if (!window.EventSource || !window.EventSource.prototype ||
+        !window.EventSource.prototype.addEventListener) {
+      return poll(path, handler, intervalMs || 5000);
+    }
+    if (activeStreamCount >= maxActiveStreams) {
+      return poll(path, handler, intervalMs || 5000);
+    }
+    activeStreamCount++;
+    var stopStream = streamSubscribe(path, handler, intervalMs || 5000);
+    var released = false;
+    return function () {
+      if (released) { return; }
+      released = true;
+      activeStreamCount--;
+      stopStream();
+    };
   }
 
   /* Bir kez oku (auth-farkinda REST; SDK snapshot cokmesinden bagimsiz). */
+  function streamToken(forceRefresh, callback) {
+    try {
+      var user = authSvc && authSvc.currentUser;
+      if (!user || !user.getIdToken) { callback(null, null); return; }
+      var result = user.getIdToken(forceRefresh === true);
+      if (result && result.then) {
+        result.then(function (token) { callback(token, null); }, function (err) {
+          callback(null, err || new Error("Firebase SSE token alinamadi"));
+        });
+      } else {
+        callback(result || null, null);
+      }
+    } catch (e) { callback(null, e); }
+  }
+
+  function setStreamValue(value, path, nextValue) {
+    var parts = String(path || "/").split("/");
+    var cleanParts = [], i, node, key;
+    for (i = 0; i < parts.length; i++) {
+      if (parts[i]) { cleanParts.push(parts[i]); }
+    }
+    if (cleanParts.length === 0) { return nextValue; }
+    if (!value || typeof value !== "object") { value = {}; }
+    node = value;
+    for (i = 0; i < cleanParts.length - 1; i++) {
+      key = cleanParts[i];
+      if (!node[key] || typeof node[key] !== "object") { node[key] = {}; }
+      node = node[key];
+    }
+    key = cleanParts[cleanParts.length - 1];
+    if (nextValue === null) { delete node[key]; }
+    else { node[key] = nextValue; }
+    return value;
+  }
+
+  function streamSubscribe(path, handler, fallbackInterval) {
+    var stopped = false;
+    var source = null;
+    var sourceGeneration = 0;
+    var stopPoll = null;
+    var initialTimer = null;
+    var lastValue = null;
+    var hasValue = false;
+
+    function warn(message) {
+      if (window.console && console.warn) { console.warn(message); }
+    }
+    function startPolling() {
+      if (stopped || stopPoll) { return; }
+      if (initialTimer) { clearTimeout(initialTimer); initialTimer = null; }
+      stopPoll = poll(path, function (value, error) {
+        if (!error) {
+          lastValue = value;
+          hasValue = true;
+        }
+        try { handler(value, error || null); } catch (e) {
+          warn("Firebase abonelik handler hatasi (" + path + "): " + e.message);
+        }
+      }, fallbackInterval);
+    }
+    function closeStream() {
+      sourceGeneration++;
+      if (source) {
+        try { source.close(); } catch (e) {}
+        source = null;
+      }
+    }
+    function emitValue() {
+      if (!hasValue) { return; }
+      connected = true;
+      if (stopPoll) { stopPoll(); stopPoll = null; }
+      if (initialTimer) { clearTimeout(initialTimer); initialTimer = null; }
+      try { handler(lastValue, null); } catch (e) {
+        warn("Firebase stream handler hatasi (" + path + "): " + e.message);
+      }
+    }
+    function openStream(token) {
+      if (stopped) { return; }
+      var cfg = (window.APP_CONFIG && window.APP_CONFIG.firebase) || {};
+      if (!cfg.databaseURL) { startPolling(); return; }
+      var clean = String(path).replace(/^\/+/, "");
+      var url = cfg.databaseURL + "/" + clean + ".json";
+      if (token) { url += "?auth=" + encodeURIComponent(token); }
+      var generation = ++sourceGeneration;
+      var thisSource;
+      try {
+        thisSource = new window.EventSource(url);
+        source = thisSource;
+      } catch (e) {
+        warn("Firebase SSE baslatilamadi (" + path + "): " + e.message);
+        startPolling();
+        return;
+      }
+      function current() {
+        return !stopped && source === thisSource && generation === sourceGeneration;
+      }
+      function onData(event, isPatch) {
+        if (!current()) { return; }
+        var message;
+        try { message = JSON.parse(event.data); } catch (e) {
+          warn("Firebase SSE verisi okunamadi (" + path + ")");
+          startPolling();
+          return;
+        }
+        if (!message || typeof message.path !== "string") { return; }
+        if (isPatch) {
+          if (!message.data || typeof message.data !== "object") { return; }
+          for (var child in message.data) {
+            if (Object.prototype.hasOwnProperty.call(message.data, child)) {
+              lastValue = setStreamValue(lastValue, message.path + "/" + child,
+                message.data[child]);
+            }
+          }
+          hasValue = true;
+        } else {
+          lastValue = setStreamValue(lastValue, message.path, message.data);
+          hasValue = true;
+        }
+        emitValue();
+      }
+      thisSource.addEventListener("put", function (event) { onData(event, false); });
+      thisSource.addEventListener("patch", function (event) { onData(event, true); });
+      thisSource.addEventListener("cancel", function (event) {
+        if (!current()) { return; }
+        connected = false;
+        warn("Firebase SSE erisimi reddedildi (" + path + "): " + event.data);
+        closeStream();
+        startPolling();
+      });
+      thisSource.addEventListener("auth_revoked", function (event) {
+        if (!current()) { return; }
+        connected = false;
+        warn("Firebase SSE token yenileniyor (" + path + "): " + event.data);
+        closeStream();
+        startPolling();
+        streamToken(true, function (freshToken, error) {
+          if (stopped) { return; }
+          if (error || !freshToken) {
+            warn("Firebase SSE token yenilenemedi (" + path + ")");
+            startPolling();
+          } else {
+            openStream(freshToken);
+          }
+        });
+      });
+      thisSource.onerror = function () {
+        if (current()) {
+          connected = false;
+          startPolling();
+        }
+      };
+    }
+
+    initialTimer = setTimeout(function () {
+      initialTimer = null;
+      startPolling();
+    }, 12000);
+    streamToken(false, function (token, error) {
+      if (stopped) { return; }
+      if (error) {
+        warn("Firebase SSE token alinamadi (" + path + "): " + error.message);
+        startPolling();
+      } else {
+        openStream(token);
+      }
+    });
+
+    return function () {
+      stopped = true;
+      if (initialTimer) { clearTimeout(initialTimer); initialTimer = null; }
+      if (stopPoll) { stopPoll(); stopPoll = null; }
+      closeStream();
+    };
+  }
+
   function once(path, handler) {
     restGet(path, function (v) { try { handler(v); } catch (e) {} });
   }

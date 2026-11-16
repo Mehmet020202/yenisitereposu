@@ -12,6 +12,7 @@
  * DAYANIKLILIK:
  *   - Otomatik yeniden baglanma (socket.io-client varsayilanlari + backoff)
  *   - Baglanti koparsa connectionStatus'a "harem: disconnected" yazilir
+ *   - Baglanti acik gorunup 5 dk gecerli fiyat gelmezse socket yenilenir
  *   - Gecersiz veri son gecerli fiyatin UZERINE YAZILMAZ
  *   - Her 60 sn'de heartbeat (sonSeen) yazilir
  *
@@ -39,6 +40,9 @@ let lastGood = {};
 let lastMessageAt = 0;
 let lastMarketTime = 0;
 let socketState = "connecting";
+let haremSocket = null;
+let lastSilenceReconnectAt = 0;
+let silenceReconnectDelayMs = 5 * 60 * 1000;
 
 const server = http.createServer((req, res) => {
   if (req.url === "/healthz") {
@@ -63,7 +67,6 @@ async function flushPartial(partial, serverTime) {
     const res = validateFieldPair(key, partial[key], lastGood[key], MAX_JUMP);
     if (res.ok) {
       accepted[key] = res.value;
-      lastGood[key] = res.value;
     } else {
       rejectedCount++;
       console.warn("REJECTED " + res.reason);
@@ -72,6 +75,7 @@ async function flushPartial(partial, serverTime) {
   if (Object.keys(accepted).length > 0) {
     try {
       await fb.writeMarketPrices(accepted, serverTime);
+      Object.assign(lastGood, accepted);
       console.log("WROTE " + JSON.stringify(accepted) +
         (serverTime ? " @" + serverTime : ""));
     } catch (e) {
@@ -82,6 +86,7 @@ async function flushPartial(partial, serverTime) {
 }
 
 function connectHarem() {
+  if (haremSocket) return;
   console.log("Harem'e baglaniliyor: " + HAREM_URL);
   const socket = io(HAREM_URL, {
     transports: ["websocket"],
@@ -91,9 +96,12 @@ function connectHarem() {
     reconnectionDelayMax: 30000,
     timeout: 15000
   });
+  haremSocket = socket;
 
   socket.on("connect", async () => {
+    if (haremSocket !== socket) return;
     socketState = "connected";
+    lastMessageAt = Date.now();
     console.log("Baglandi. ID=" + socket.id);
     /* CANLI DOGRULAMA (2026-11-03): Sunucu baglanti aninda 'price_changed'
      * olayini KENDILIGINDEN yayar (abonelik sart degil). Asagidaki emit'ler
@@ -113,6 +121,7 @@ function connectHarem() {
   });
 
   socket.on("disconnect", async (reason) => {
+    if (haremSocket !== socket) return;
     socketState = "disconnected";
     console.warn("Baglantı koptu: " + reason);
     try {
@@ -121,6 +130,7 @@ function connectHarem() {
   });
 
   socket.on("connect_error", async (err) => {
+    if (haremSocket !== socket) return;
     socketState = "error";
     console.warn("Baglanti hatasi: " + err.message);
     try {
@@ -143,6 +153,23 @@ function connectHarem() {
   });
 }
 
+function reconnectAfterSilence() {
+  if (!haremSocket || socketState !== "connected") return;
+  const now = Date.now();
+  if (!HaremMap.isFeedSilent(lastSilenceReconnectAt, now, silenceReconnectDelayMs)) return;
+
+  lastSilenceReconnectAt = now;
+  silenceReconnectDelayMs = Math.min(silenceReconnectDelayMs * 2, 30 * 60 * 1000);
+  const previousSocket = haremSocket;
+  haremSocket = null;
+  socketState = "reconnecting";
+  console.warn("Fiyat akisinda 5 dk sessizlik; Harem baglantisi yenileniyor");
+  previousSocket.disconnect();
+  setTimeout(() => {
+    if (!haremSocket) connectHarem();
+  }, 1000);
+}
+
 /* CANLI DOGRULANMIS sema (probe 2026-11-03):
  *   { meta: { time: <ms> }, data: { ALTIN:{alis,satis,...}, USDTRY:{...},
  *     EURTRY:{...}, CEYREK_YENI:{...}, ... } }
@@ -150,11 +177,13 @@ function connectHarem() {
  * geride birakilr, boylece sunucu protokol degistirirse cod cokmez. */
 function handlePrice(data, via) {
   if (!data || typeof data !== "object") return;
-  lastMessageAt = Date.now();
+  const receivedAt = Date.now();
 
-  /* Sunucu zaman damgasi (meta.time) varsa onu, yoksa istemci saatini kullan. */
-  var serverTime = (data.meta && isFinite(Number(data.meta.time)))
-    ? Number(data.meta.time) : null;
+  /* meta.time'i ancak alis saatiyle uyumluysa kullan; altı saatlik saat
+   * sapmasi canli olayi eski veri gibi reddetmemeli. */
+  var serverTime = HaremMap.normalizeMarketTime(
+    data.meta && data.meta.time, receivedAt, 180000
+  );
 
   /* Sembol haritasi: dogru yer data.data altindadir. */
   var symRoot = (data.data && typeof data.data === "object") ? data.data : data;
@@ -179,6 +208,9 @@ function handlePrice(data, via) {
       console.warn("OLD_EVENT ignored @" + serverTime + " < " + lastMarketTime);
       return;
     }
+    lastMessageAt = receivedAt;
+    lastSilenceReconnectAt = 0;
+    silenceReconnectDelayMs = 5 * 60 * 1000;
     if (serverTime) lastMarketTime = Math.max(lastMarketTime, serverTime);
     flushPartial(merged, serverTime).catch((e) => console.error(e.message));
   } else {
@@ -191,11 +223,12 @@ function safeJson(x) { try { return JSON.stringify(x); } catch (e) { return Stri
 /* Heartbeat: 60 sn'de bir durum tazeleme. 5 dk boyunca tek bir mesaj bile
  * gelmediyse yöneticiyi uyaran "stale" durumu yazilir. */
 setInterval(async () => {
-  const silentMs = lastMessageAt ? (Date.now() - lastMessageAt) : Date.now();
+  const now = Date.now();
   try {
     if (socketState !== "connected") {
       await fb.writeConnectionStatus({ harem: socketState, note: "yeniden baglanma denemeleri suruyor" });
-    } else if (silentMs > 5 * 60 * 1000) {
+    } else if (HaremMap.isFeedSilent(lastMessageAt, now, 5 * 60 * 1000)) {
+      reconnectAfterSilence();
       await fb.writeConnectionStatus({ harem: "stale", note: "5 dk+ veri akisi yok" });
     } else {
       await fb.writeConnectionStatus({ harem: "connected", note: "kalp atisi" });

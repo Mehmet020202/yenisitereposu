@@ -67,6 +67,29 @@ var PriceFormatter = (function () {
     return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
   }
 
+  /* Canli akista kaynagin saati yerel alis zamanindan belirgin saparsa,
+   * hatali damgayi gosterim ve siralama icin kullanma. */
+  function normalizeMarketTime(sourceTime, receivedAt, maxSkewMs) {
+    var source = parseFloat(sourceTime);
+    var received = parseFloat(receivedAt);
+    var skew = parseFloat(maxSkewMs);
+    if (!isFinite(received) || received <= 0) { received = Date.now(); }
+    if (!isFinite(skew) || skew <= 0) { skew = 180000; }
+    if (!isFinite(source) || source <= 0 ||
+        Math.abs(received - source) > skew) {
+      return received;
+    }
+    return source;
+  }
+
+  function isFeedSilent(lastEventAt, nowMs, maxSilenceMs) {
+    var last = parseFloat(lastEventAt);
+    var now = parseFloat(nowMs);
+    var limit = parseFloat(maxSilenceMs);
+    return isFinite(last) && last > 0 && isFinite(now) &&
+      isFinite(limit) && limit > 0 && now - last >= limit;
+  }
+
   /* Fiyatın tazeliği: updatedAt'ten itibaren geçen süreye göre metin. */
   function freshnessInfo(updatedAt, nowMs, staleLimitMs) {
     var t = parseFloat(updatedAt);
@@ -95,6 +118,8 @@ var PriceFormatter = (function () {
     formatDateTime: formatDateTime,
     formatDate: formatDate,
     formatClock: formatClock,
+    normalizeMarketTime: normalizeMarketTime,
+    isFeedSilent: isFeedSilent,
     freshnessInfo: freshnessInfo
   };
 })();

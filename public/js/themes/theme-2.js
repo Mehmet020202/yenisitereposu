@@ -2,7 +2,7 @@
  * ALTUG KUYUMCULUK - TASARIM 2 (Premium Yesil) arayuz bileseni (ES5)
  * =====================================================================
  * MIMARI KURALI (TALIMAT bolum 7): Bu dosya HICBIR veri baglantisi acmaz.
- * Harem socket, Firebase REST poll ve PriceEngine hesaplarinin OLDUGU
+ * Harem socket, Firebase RTDB stream ve PriceEngine hesaplarinin OLDUGU
  * tek ortak state nesnesi tv.js'den render(state) ile buraya akatarilir.
  * Tasarim degisince baglanti kesilmez, yeniden baslatilmaz.
  *
