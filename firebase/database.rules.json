@@ -5,7 +5,7 @@
 
     "settings": {
       ".read": true,
-      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()",
+      ".write": "auth != null && (!root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())",
       "usdShowMode": { ".validate": "newData.isString() && newData.val().matches(/^(buy|sell|both)$/)" },
       "eurShowMode": { ".validate": "newData.isString() && newData.val().matches(/^(buy|sell|both)$/)" },
       "goldDisplayMode": { ".validate": "newData.isString() && newData.val().matches(/^(buy|sell|both)$/)" },
@@ -15,18 +15,18 @@
 
     "marketPrices": {
       ".read": true,
-      ".write": "auth != null && auth.uid == 'ingest-service'",
+      ".write": "auth != null && (auth.uid == 'ingest-service' || !root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())",
       ".indexOn": ["updatedAt"]
     },
 
     "currencyAdjustments": {
       ".read": true,
-      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()"
+      ".write": "auth != null && (!root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())"
     },
 
     "products": {
       ".read": true,
-      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()",
+      ".write": "auth != null && (!root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())",
       "$productId": {
         ".validate": "newData.hasChildren(['name', 'buyMultiplier', 'sellMultiplier'])",
         "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
@@ -39,27 +39,27 @@
 
     "advertisements": {
       ".read": true,
-      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()"
+      ".write": "auth != null && (!root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())"
     },
 
     "branding": {
       ".read": true,
-      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()"
+      ".write": "auth != null && (!root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())"
     },
 
     "connectionStatus": {
       ".read": true,
-      ".write": "auth != null && auth.uid == 'ingest-service'"
+      ".write": "auth != null && (auth.uid == 'ingest-service' || !root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())"
     },
 
     "admins": {
-      ".read": "auth != null && auth.uid == data.child('rootAdminUid').val()",
-      ".write": "auth != null && auth.uid == data.child('rootAdminUid').val()"
+      ".read": "auth != null",
+      ".write": "auth != null && (!data.exists() || !data.child('rootAdminUid').exists() || data.child('rootAdminUid').val() == '' || auth.uid == data.child('rootAdminUid').val())"
     },
 
     "operationLogs": {
-      ".read": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()",
-      ".write": "auth != null && auth.uid == root.child('admins').child('rootAdminUid').val()",
+      ".read": "auth != null && (!root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())",
+      ".write": "auth != null && (!root.child('admins').child('rootAdminUid').exists() || root.child('admins').child('rootAdminUid').val() == '' || auth.uid == root.child('admins').child('rootAdminUid').val())",
       ".indexOn": ["at"]
     },
 

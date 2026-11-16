@@ -132,6 +132,9 @@
 
   function effectiveStale() {
     if (!state.market) { return true; }
+    var viaFallbackFresh = fbAppliedAt > 0 &&
+      (Date.now() - fbAppliedAt) < ((window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000);
+    if (viaFallbackFresh) { return false; }
     var info = PriceFormatter.freshnessInfo(
       state.market.updatedAt, Date.now(),
       (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000
@@ -490,15 +493,73 @@
    * Harem'e baglanir. Bu ver YALNIZCA ekranda gosterilir; Firebase'e
    * yazilMAZ (TV'nin yazma izni yoktur ve olmamalidir). */
   var fbAppliedAt = 0;
-  function loadScript(src, onOk) {
+  var haremSocket = null;
+  var haremRetryMs = 5000;
+  var haremRetryTimer = null;
+
+  /* SDK'yi sirayla kaynaklardan yukle (biri engelliyse digeri denenir). */
+  function loadScriptList(list, idx, onOk) {
+    if (idx >= list.length) { onOk(false); return; }
     try {
       var sc = document.createElement("script");
-      sc.src = src;
-      sc.onload = onOk || null;
-      sc.onerror = function () {};
+      sc.src = list[idx];
+      sc.onload = function () { onOk(true); };
+      sc.onerror = function () { loadScriptList(list, idx + 1, onOk); };
       var head = document.head || document.getElementsByTagName("head")[0];
-      if (head) { head.appendChild(sc); }
-    } catch (e) {}
+      if (head) { head.appendChild(sc); } else { onOk(false); }
+    } catch (e) { onOk(false); }
+  }
+  function loadScript(src, onOk) { loadScriptList([src], 0, onOk); }
+
+  function scheduleHaremRetry() {
+    if (haremRetryTimer) { return; }
+    haremRetryTimer = setTimeout(function () {
+      haremRetryTimer = null;
+      maybeStartHaremFallback();
+    }, haremRetryMs);
+    haremRetryMs = Math.min(haremRetryMs * 2, 60000);
+  }
+
+  /* Eski TV tarayicilarinda WebSocket bulunmayabilir: baglanti once
+   * uzun-polling ile kurulur, destekleniyorsa WebSocket'e yukseltilir.
+   * Onceden transports=["websocket"] sabitti; WebSocket'i olmayan cihazda
+   * canli yedek HIC calismiyor ve ekran "GUNCEL DEGIL" bandinda kaliyordu.
+   * Ayrica baglanti kurulamazsa artan bekleme ile yeniden denenir. */
+  var haremUsePolling = false;
+
+  function connectHaremSocket() {
+    if (typeof window.io !== "function") { return false; }
+    if (haremSocket) { return true; }
+    try {
+      haremSocket = window.io("https://socket.haremaltin.com", {
+        transports: [haremUsePolling ? "polling" : "websocket"],
+        upgrade: true,
+        reconnection: true,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 30000,
+        timeout: 20000,
+        forceNew: true
+      });
+      haremSocket.on("price_changed", applyFallbackPayload);
+      haremSocket.on("connect", function () {
+        haremRetryMs = 5000;
+        try {
+          haremSocket.emit("subscribe", ["ALTIN", "USDTRY", "EURTRY"]);
+          setTimeout(function () { try { haremSocket.emit("subscribe", { symbols: ["ALTIN", "USDTRY", "EURTRY"] }); } catch (e) {} }, 1500);
+          setTimeout(function () { try { haremSocket.emit("join", ["ALTIN", "USDTRY", "EURTRY"]); } catch (e) {} }, 3000);
+        } catch (e) {}
+      });
+      haremSocket.on("disconnect", function () { scheduleHaremRetry(); });
+      /* WebSocket yoksa/engellendiyse polling denenir (eski TV icin tek
+       * sans); polling de olmazsa artan bekleme ile yeniden denenir. */
+      haremSocket.on("connect_error", function () {
+        try { haremSocket.close(); } catch (e) {}
+        haremSocket = null;
+        haremUsePolling = !haremUsePolling;
+        scheduleHaremRetry();
+      });
+      return true;
+    } catch (e) { haremSocket = null; return false; }
   }
   function applyFallbackPayload(res) {
     try {
@@ -527,10 +588,11 @@
         }
       }
       if (!out.hasBuy && !out.usdBuy) { return; }
-      var t = (res.meta && isFinite(Number(res.meta.time)))
-        ? Number(res.meta.time) : Date.now();
-      /* Bulut akisi tazeyse yedek KULLANILMAZ (tek dogru kaynak buluttur). */
-      if (state.market && state.market.updatedAt && state.market.updatedAt >= t) { return; }
+      var t = Date.now();
+      /* Bulut akisi son 3 dakika icinde geldiyse ve gercekten tazeyse yedek yerine bulut kalir */
+      var cloudFresh = state.market && state.market.source !== "browser-fallback" &&
+        state.market.updatedAt && (Date.now() - state.market.updatedAt < 180000);
+      if (cloudFresh) { return; }
       var merged = {}, k;
       if (state.market) {
         for (k in state.market) {
@@ -542,6 +604,8 @@
       merged.source = "browser-fallback";
       state.market = merged;
       fbAppliedAt = Date.now();
+      if (!state.status) { state.status = {}; }
+      state.status.harem = "connected";
       try { AppDb.cacheMarket(merged); } catch (e) {}
       renderAll();
     } catch (e) {}
@@ -549,12 +613,13 @@
   function maybeStartHaremFallback() {
     var cfg = window.APP_CONFIG || {};
     if (cfg.allowBrowserFallback !== true) { return; }
-    loadScript("https://cdn.socket.io/4.4.1/socket.io.min.js", function () {
-      try {
-        if (typeof io !== "function") { return; }
-        var s = io("wss://socket.haremaltin.com:443", { transports: ["websocket"] });
-        s.on("price_changed", applyFallbackPayload);
-      } catch (e) {}
+    if (connectHaremSocket()) { return; }
+    loadScriptList([
+      "js/lib/socket.io.min.js",
+      "https://cdn.socket.io/4.4.1/socket.io.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"
+    ], 0, function () {
+      if (!connectHaremSocket()) { scheduleHaremRetry(); }
     });
   }
 

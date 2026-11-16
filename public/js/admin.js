@@ -49,7 +49,9 @@
     setTimeout(function () { t.style.display = "none"; }, 2500);
   }
 
-  /* Islem gecmisine kayit */
+  /* Islem gecmisine kayit + PostHog olay eslemesi (oturum tekrari ile ayni
+   * oturuma baglanir). PostHog olay adinda nokta kullanilmaz: urun.ekle ->
+   * admin_urun_ekle. Izin verilmemisse AppAnalytics.capture sessizce doner. */
   function logOp(action, detail) {
     try {
       AppDb.push("operationLogs", {
@@ -59,6 +61,99 @@
         at: Date.now()
       });
     } catch (e) {}
+    try {
+      if (window.AppAnalytics) {
+        window.AppAnalytics.capture("admin_" + String(action).replace(/\./g, "_"), {
+          action: String(action),
+          detail: String(detail || "").substring(0, 120)
+        });
+      }
+    } catch (e) {}
+  }
+
+  /* ---------- YAZMA YARDIMCILARI ----------
+   * Butun yazmalar buradan gecer ve sonucu BEKLENIR. Onceden update/set/push
+   * cagrilari geri cagrisiz yapiliyor, hata yutuluyor ve basarisiz islemde
+   * bile "kaydedildi" deniyordu; bu yuzden yetkisi olmayan oturumda panel
+   * basari gosteriyor, TV'de hicbir sey degismiyordu. */
+  function writeErrorMessage(err) {
+    var msg = (err && err.message) ? err.message : String(err);
+    var uid = (state.me && state.me.uid) ? state.me.uid : "?";
+    if (/HTTP 40[13]/.test(msg) || /giris gerekli/i.test(msg)) {
+      msg += " - bu hesabin yazma yetkisi YOK. Giris UID: " + uid +
+        " | admins/rootAdminUid: " + (state.rootAdminUid || "ATANMAMIS") +
+        ". Firebase Console > Realtime Database > admins > rootAdminUid degerini bu UID yapin.";
+    } else if (/HTTP 0|Network|Failed to fetch/i.test(msg)) {
+      msg += " - Firebase'e ulasilamadi (internet baglantisi).";
+    }
+    return msg;
+  }
+
+  function writeDone(label, err, onOk) {
+    if (err) {
+      toast(label + " KAYDEDILEMEDI: " + writeErrorMessage(err));
+      try { updatePermBanner(); } catch (e) {}
+      return;
+    }
+    if (onOk) { try { onOk(); } catch (e) {} }
+  }
+
+  function dbWrite(how, path, data, label, onOk) {
+    var done = function (err, res) {
+      writeDone(label, err, function () { if (onOk) { onOk(res); } });
+    };
+    try {
+      if (how === "set") { AppDb.set(path, data, done); }
+      else if (how === "remove") { AppDb.remove(path, done); }
+      else if (how === "push") { AppDb.push(path, data, done); }
+      else { AppDb.update(path, data, done); }
+    } catch (e) { writeDone(label, e); }
+  }
+
+  /* Siralı/çoklu yazma: ilk hata aninda durur ve hata mesajini gosterir. */
+  function dbWriteMany(label, writes, onOk) {
+    var i = 0;
+    function next() {
+      if (i >= writes.length) {
+        if (onOk) { try { onOk(); } catch (e) {} }
+        return;
+      }
+      var w = writes[i++];
+      dbWrite(w[0], w[1], w[2], label, next);
+    }
+    next();
+  }
+
+  /* admins/rootAdminUid yalnizca root admin'e okunur; bos gelmesi ya da
+   * UID uyusmamasi TUM yazmalarin reddedilmesi demektir. Sessizce yasamak
+   * yerine ekranin altinda kalici uyari gosterilir. */
+  function updatePermBanner() {
+    if (!state.me) { return; }
+    var uid = state.me.uid || "";
+    var root = state.rootAdminUid || "";
+    var el = byId("perm-banner");
+    if (root && root === uid) {
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+        document.body.style.paddingBottom = "";
+      }
+      return;
+    }
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "perm-banner";
+      el.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;" +
+        "background:#7a1f1f;color:#fff;padding:10px 14px;text-align:left;" +
+        "box-shadow:0 -2px 12px rgba(0,0,0,.4);" +
+        "font:14px/1.5 system-ui,Segoe UI,Arial,sans-serif;";
+      document.body.appendChild(el);
+      document.body.style.paddingBottom = "110px";
+    }
+    el.innerHTML = "<b>Yazma yetkisi yok - yaptiginiz degisiklikler KAYDEDILMIYOR.</b><br>" +
+      "Giris yapan hesabin UID: <code>" + escapeHtml(uid) + "</code> &nbsp;|&nbsp; " +
+      "admins/rootAdminUid: <code>" + escapeHtml(root || "ATANMAMIS") + "</code><br>" +
+      "Duzeltme: Firebase Console &gt; Realtime Database &gt; admins &gt; rootAdminUid " +
+      "degerini yukaridaki UID yapin, sonra bu sayfayi yenileyin.";
   }
 
   /* ---------- GIRIS KONTROLU ---------- */
@@ -80,6 +175,10 @@
         return;
       }
       state.me = authData;
+      /* PostHog: oturum kaydini yonetici UID'si ile esle (e-posta GONDERILMEZ). */
+      try {
+        if (window.AppAnalytics) { window.AppAnalytics.identify(authData.uid, { panel: "admin" }); }
+      } catch (e) {}
       var u = byId("topbar-user");
       if (u) { u.innerHTML = escapeHtml(authData.password ? authData.password.email : "yonetici"); }
       onReady();
@@ -115,6 +214,19 @@
       if (el) { el.innerHTML = v ? escapeHtml(v) : "ATANMAMIS"; }
       var inp = byId("admin-uid-input");
       if (inp && v && !inp.value) { inp.value = v; }
+      
+      // Eger rootAdminUid atanmamis ise ve giris yapmis bir yonetici varsa, otomatik ata!
+      if (!v && state.me && state.me.uid) {
+        AppDb.set("admins/rootAdminUid", state.me.uid, function (err) {
+          if (!err) {
+            state.rootAdminUid = state.me.uid;
+            if (el) { el.innerHTML = escapeHtml(state.me.uid); }
+            if (inp) { inp.value = state.me.uid; }
+            toast("Yonetici yetkisi (rootAdminUid) otomatik olarak hesabinizla eslestirildi.");
+          }
+        });
+      }
+      try { updatePermBanner(); } catch (e) {}
     });
     AppDb.subscribe("operationLogs", function (v) { state.logs = v || {}; renderLogs(); });
   }
@@ -123,13 +235,67 @@
    * Firebase marketPrices bayat oldugunda (bulut ingestion calismiyor) admin
    * de TV gibi dogrudan Harem socket'e baglanip CANLI fiyati gosterir.
    * YALNIZ ekranda; Firebase'e yazilmaz. config.allowBrowserFallback=true iken. */
-  function loadScriptAdmin(src, onOk) {
+  var haremAdminSocket = null, haremAdminRetryMs = 5000, haremAdminTimer = null;
+
+  /* SDK'yi sirayla kaynaklardan yukle (biri engelliyse digeri denenir). */
+  function loadScriptAdminList(list, idx, onOk) {
+    if (idx >= list.length) { onOk(false); return; }
     try {
       var sc = document.createElement("script");
-      sc.src = src; sc.onload = onOk || null; sc.onerror = function () {};
+      sc.src = list[idx];
+      sc.onload = function () { onOk(true); };
+      sc.onerror = function () { loadScriptAdminList(list, idx + 1, onOk); };
       var head = document.head || document.getElementsByTagName("head")[0];
-      if (head) { head.appendChild(sc); }
-    } catch (e) {}
+      if (head) { head.appendChild(sc); } else { onOk(false); }
+    } catch (e) { onOk(false); }
+  }
+
+  function scheduleHaremAdminRetry() {
+    if (haremAdminTimer) { return; }
+    haremAdminTimer = setTimeout(function () {
+      haremAdminTimer = null;
+      maybeStartHaremFallback();
+    }, haremAdminRetryMs);
+    haremAdminRetryMs = Math.min(haremAdminRetryMs * 2, 60000);
+  }
+
+  /* Polling once, WebSocket'e yukseltilir: WebSocket'i olmayan eski
+   * tarayicilarda da canli yedek calisir (onceden yalniz websocket idi). */
+  var haremAdminUsePolling = false;
+
+  function connectHaremAdmin() {
+    if (typeof window.io !== "function") { return false; }
+    if (haremAdminSocket) { return true; }
+    try {
+      haremAdminSocket = window.io("https://socket.haremaltin.com", {
+        transports: [haremAdminUsePolling ? "polling" : "websocket"],
+        upgrade: true,
+        reconnection: true,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 30000,
+        timeout: 20000,
+        forceNew: true
+      });
+      haremAdminSocket.on("price_changed", applyHaremPayload);
+      haremAdminSocket.on("connect", function () {
+        haremAdminRetryMs = 5000;
+        try {
+          haremAdminSocket.emit("subscribe", ["ALTIN", "USDTRY", "EURTRY"]);
+          setTimeout(function () { try { haremAdminSocket.emit("subscribe", { symbols: ["ALTIN", "USDTRY", "EURTRY"] }); } catch (e) {} }, 1500);
+          setTimeout(function () { try { haremAdminSocket.emit("join", ["ALTIN", "USDTRY", "EURTRY"]); } catch (e) {} }, 3000);
+        } catch (e) {}
+      });
+      haremAdminSocket.on("disconnect", function () { scheduleHaremAdminRetry(); });
+      /* WebSocket yoksa/engellendiyse polling denenir; o da olmazsa
+       * artan bekleme ile yeniden denenir. */
+      haremAdminSocket.on("connect_error", function () {
+        try { haremAdminSocket.close(); } catch (e) {}
+        haremAdminSocket = null;
+        haremAdminUsePolling = !haremAdminUsePolling;
+        scheduleHaremAdminRetry();
+      });
+      return true;
+    } catch (e) { haremAdminSocket = null; return false; }
   }
   function applyHaremPayload(res) {
     try {
@@ -150,25 +316,61 @@
         }
       }
       if (!out.hasBuy && !out.usdBuy) { return; }
-      var t = (res.meta && isFinite(Number(res.meta.time))) ? Number(res.meta.time) : Date.now();
-      if (state.market && state.market.updatedAt && state.market.updatedAt >= t) { return; }
+      var t = Date.now();
+      var cloudFresh = state.market && state.market.source !== "browser-fallback" &&
+        state.market.updatedAt && (Date.now() - state.market.updatedAt < 180000);
+      if (cloudFresh) { return; }
       var merged = {}, k;
       if (state.market) { for (k in state.market) { if (state.market.hasOwnProperty(k)) { merged[k] = state.market[k]; } } }
       for (k in out) { if (out.hasOwnProperty(k)) { merged[k] = out[k]; } }
       merged.updatedAt = t; merged.source = "browser-fallback";
       state.market = merged;
       renderMarket(); renderOverview(); renderHasPreview(); renderCurPreviews();
+
+      /* Canli fiyati Firebase'e de senkronize et (bulut servisi kapaliysa admin paneli besler) */
+      syncLivePriceToFirebase(merged);
     } catch (e) {}
   }
+    var lastFbSyncAt = 0;
+  function syncLivePriceToFirebase(payload) {
+    try {
+      if (!state.me || !state.me.uid) { return; }
+      if (Date.now() - lastFbSyncAt < 15000) { return; } // En fazla 15 sn'de bir yaz
+      lastFbSyncAt = Date.now();
+      var fbPayload = {
+        hasBuy: payload.hasBuy || 0,
+        hasSell: payload.hasSell || 0,
+        usdBuy: payload.usdBuy || 0,
+        usdSell: payload.usdSell || 0,
+        eurBuy: payload.eurBuy || 0,
+        eurSell: payload.eurSell || 0,
+        updatedAt: Date.now(),
+        source: "admin-live-sync"
+      };
+      if (payload.hasBuyDir) { fbPayload.hasBuyDir = payload.hasBuyDir; }
+      if (payload.hasSellDir) { fbPayload.hasSellDir = payload.hasSellDir; }
+      if (payload.usdBuyDir) { fbPayload.usdBuyDir = payload.usdBuyDir; }
+      if (payload.usdSellDir) { fbPayload.usdSellDir = payload.usdSellDir; }
+      if (payload.eurBuyDir) { fbPayload.eurBuyDir = payload.eurBuyDir; }
+      if (payload.eurSellDir) { fbPayload.eurSellDir = payload.eurSellDir; }
+      AppDb.update("marketPrices", fbPayload, function (err) {
+        if (!err) {
+          AppDb.update("connectionStatus", { harem: "connected", note: "admin paneli canli akisi", at: Date.now() });
+        }
+      });
+    } catch (e) {}
+  }
+
   function maybeStartHaremFallback() {
     var cfg = window.APP_CONFIG || {};
     if (cfg.allowBrowserFallback !== true) { return; }
-    loadScriptAdmin("https://cdn.socket.io/4.4.1/socket.io.min.js", function () {
-      try {
-        if (typeof io !== "function") { return; }
-        var s = io("wss://socket.haremaltin.com:443", { transports: ["websocket"] });
-        s.on("price_changed", applyHaremPayload);
-      } catch (e) {}
+    if (connectHaremAdmin()) { return; }
+    loadScriptAdminList([
+      "js/lib/socket.io.min.js",
+      "https://cdn.socket.io/4.4.1/socket.io.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"
+    ], 0, function () {
+      if (!connectHaremAdmin()) { scheduleHaremAdminRetry(); }
     });
   }
 
@@ -304,7 +506,7 @@
     var patch = { name: name, buyMultiplier: buy, sellMultiplier: sell, updatedAt: Date.now() };
     var pid = editingPid;
     AppDb.update("products/" + pid, patch, function (err) {
-      if (err) { if (er) { er.innerHTML = "Kaydedilemedi: " + (err.message || err); } return; }
+      if (err) { if (er) { er.innerHTML = "Kaydedilemedi: " + writeErrorMessage(err); } return; }
       if (state.products[pid]) {
         state.products[pid].name = name;
         state.products[pid].buyMultiplier = buy;
@@ -332,14 +534,15 @@
       openEdit(pid);
     } else if (act === "tvtoggle") {
       var nv = p.tvVisible === false ? true : false;
-      AppDb.update("products/" + pid, { tvVisible: nv }, function () {
-        p.tvVisible = nv; renderProducts();
+      dbWrite("update", "products/" + pid, { tvVisible: nv }, "TV'de goster/gizle", function () {
+        p.tvVisible = nv;
+        renderProducts(); renderOverview();
+        logOp("urun.tv", p.name + " -> tvVisible=" + nv);
       });
-      logOp("urun.tv", p.name + " -> tvVisible=" + nv);
     } else if (act === "delete") {
       if (window.confirm("'" + p.name + "' silinsin mi? Bu işlem geri alınamaz!")) {
         AppDb.remove("products/" + pid, function (err) {
-          if (err) { toast("Silinemedi: " + (err.message || err)); return; }
+          if (err) { toast("Silinemedi: " + writeErrorMessage(err)); return; }
           if (state.products.hasOwnProperty(pid)) { delete state.products[pid]; } else { state.products[pid] = null; }
           renderProducts(); renderOverview(); renderHasPreview();
           logOp("urun.sil", p.name);
@@ -375,9 +578,15 @@
       }
     }
     if (state.products[pid]) { patch.updatedAt = Date.now(); }
-    AppDb.update("products/" + pid, patch);
-    logOp("urun.duzenle", state.products[pid] ? state.products[pid].name : pid);
-    toast("Urun kaydedildi - TV'ye aninda yansidi");
+    dbWrite("update", "products/" + pid, patch, "Urun kaydi", function () {
+      var k;
+      if (state.products[pid]) {
+        for (k in patch) { if (patch.hasOwnProperty(k)) { state.products[pid][k] = patch[k]; } }
+      }
+      renderProducts(); renderOverview(); renderHasPreview();
+      logOp("urun.duzenle", state.products[pid] ? state.products[pid].name : pid);
+      toast("Urun kaydedildi - TV'ye aninda yansidi");
+    });
   }
 
   function moveProduct(pid, dir) {
@@ -406,11 +615,13 @@
       if (list[i].order !== (i + 1)) { list[i].order = i + 1; changed.push(list[i]); }
     }
     renderProducts();  /* iyimser: aninda goster (5sn poll beklenmez) */
-    var j;
+    var j, writes = [];
     for (j = 0; j < changed.length; j++) {
-      AppDb.update("products/" + changed[j]._id, { order: changed[j].order });
+      writes.push(["update", "products/" + changed[j]._id, { order: changed[j].order }]);
     }
-    logOp("urun.sira", state.products[pid] ? state.products[pid].name : pid);
+    dbWriteMany("Urun sirasi", writes, function () {
+      logOp("urun.sira", state.products[pid] ? state.products[pid].name : pid);
+    });
   }
 
   function addProduct() {
@@ -439,11 +650,29 @@
       updatedAt: Date.now()
     };
     if (img) { rec.imageUrl = img; }
-    AppDb.push("products", rec);
-    logOp("urun.ekle", name);
-    toast("Urun eklendi - TV ekraninda gorunuyor");
+    /* Yazma sonucu MUTLAKA beklenir: onceden hata yutuluyor ve basarisiz
+     * kayitta bile "Urun eklendi" deniyordu. Bu yuzden yetki/oturum sorunu
+     * olan bir panelde urun hic Firebase'e yazilmiyor, kullanici panelinde
+     * de gorunmuyordu. */
+    // Optimistic (aninda) arayuz guncellemesi
+    var tempId = "tmp_" + Date.now();
+    rec._id = tempId;
+    state.products[tempId] = rec;
+    renderProducts(); renderOverview(); renderHasPreview();
     byId("np-name").value = ""; byId("np-buy").value = "";
     byId("np-sell").value = ""; byId("np-img").value = "";
+
+    dbWrite("push", "products", rec, "Urun ekleme", function (res) {
+      var newId = (res && res.name) ? res.name : null;
+      delete state.products[tempId];
+      if (newId) {
+        rec._id = newId;
+        state.products[newId] = rec;
+      }
+      logOp("urun.ekle", name);
+      toast("Urun eklendi - TV ekraninda gorunuyor");
+      renderProducts(); renderOverview(); renderHasPreview();
+    });
   }
 
   /* ---------- HAS REFERANSI ---------- */
@@ -483,9 +712,10 @@
   }
 
   function setGoldReference(ref) {
-    AppDb.update("settings", { goldReference: ref });
-    logOp("has.referans", ref);
-    toast("Ortak HAS referansi degisti - tum urunler yeniden hesaplandi");
+    dbWrite("update", "settings", { goldReference: ref }, "HAS referansi", function () {
+      logOp("has.referans", ref);
+      toast("Ortak HAS referansi degisti - tum urunler yeniden hesaplandi");
+    });
   }
 
   /* ---------- USD / EUR ---------- */
@@ -513,26 +743,32 @@
     var sel = PriceValidator.toNumber(byId("usd-sell-adj").value);
     if (isNaN(buy)) { buy = 0; }
     if (isNaN(sel)) { sel = 0; }
-    AppDb.update("currencyAdjustments", { usdBuyAdjustment: buy, usdSellAdjustment: sel });
-    AppDb.update("settings", {
-      showUsd: byId("usd-show").checked,
-      usdShowMode: byId("usd-mode").value
+    dbWriteMany("USD ayarlari", [
+      ["update", "currencyAdjustments", { usdBuyAdjustment: buy, usdSellAdjustment: sel }],
+      ["update", "settings", {
+        showUsd: byId("usd-show").checked,
+        usdShowMode: byId("usd-mode").value
+      }]
+    ], function () {
+      logOp("usd.ayar", buy + "/" + sel);
+      toast("USD ayarlari kaydedildi");
     });
-    logOp("usd.ayar", buy + "/" + sel);
-    toast("USD ayarlari kaydedildi");
   }
   function saveEur() {
     var buy = PriceValidator.toNumber(byId("eur-buy-adj").value);
     var sel = PriceValidator.toNumber(byId("eur-sell-adj").value);
     if (isNaN(buy)) { buy = 0; }
     if (isNaN(sel)) { sel = 0; }
-    AppDb.update("currencyAdjustments", { eurBuyAdjustment: buy, eurSellAdjustment: sel });
-    AppDb.update("settings", {
-      showEur: byId("eur-show").checked,
-      eurShowMode: byId("eur-mode").value
+    dbWriteMany("EUR ayarlari", [
+      ["update", "currencyAdjustments", { eurBuyAdjustment: buy, eurSellAdjustment: sel }],
+      ["update", "settings", {
+        showEur: byId("eur-show").checked,
+        eurShowMode: byId("eur-mode").value
+      }]
+    ], function () {
+      logOp("eur.ayar", buy + "/" + sel);
+      toast("EUR ayarlari kaydedildi");
     });
-    logOp("eur.ayar", buy + "/" + sel);
-    toast("EUR ayarlari kaydedildi");
   }
 
   function renderCurPreviews() {
@@ -576,7 +812,7 @@
     return out;
   }
   function saveTvView() {
-    AppDb.update("settings", {
+    dbWrite("update", "settings", {
       goldDisplayMode: byId("gold-mode").value,
       currencySectionHidden: byId("cur-section-hide").checked,
       tvNote: byId("tv-note-input").value,
@@ -586,9 +822,10 @@
       whatsappNumber: byId("wa-number") ? byId("wa-number").value : "",
       whatsappMessage: byId("wa-message") ? byId("wa-message").value : "",
       ibanList: byId("iban-input") ? ibanParse(byId("iban-input").value) : []
+    }, "TV gorunumu", function () {
+      logOp("tv.gorunum", byId("gold-mode").value);
+      toast("TV gorunumu kaydedildi - ekrana aninda yansidi");
     });
-    logOp("tv.gorunum", byId("gold-mode").value);
-    toast("TV gorunumu kaydedildi - ekrana aninda yansidi");
   }
 
   /* ---------- REKLAMLAR ---------- */
@@ -620,13 +857,20 @@
       if (!el || el === this) { return; }
       var aid = el.getAttribute("data-aid");
       var act = el.getAttribute("data-aact");
+      var adRec = state.ads[aid] || {};
+      var adTitle = adRec.title || aid;
       if (act === "toggle") {
-        AppDb.update("advertisements/" + aid, { active: state.ads[aid].active === false });
-        logOp("reklam.durum", state.ads[aid].title || aid);
+        var nv = adRec.active === false;
+        dbWrite("update", "advertisements/" + aid, { active: nv }, "Reklam durumu", function () {
+          adRec.active = nv; renderAds(); renderOverview();
+          logOp("reklam.durum", adTitle);
+        });
       } else if (act === "del") {
         if (window.confirm("Reklam silinsin mi?")) {
-          AppDb.remove("advertisements/" + aid);
-          logOp("reklam.sil", state.ads[aid].title || aid);
+          dbWrite("remove", "advertisements/" + aid, null, "Reklam silme", function () {
+            delete state.ads[aid]; renderAds(); renderOverview();
+            logOp("reklam.sil", adTitle);
+          });
         }
       }
     };
@@ -642,7 +886,7 @@
     for (k in state.ads) {
       if (state.ads.hasOwnProperty(k) && state.ads[k]) { maxOrder = Math.max(maxOrder, state.ads[k].order || 0); }
     }
-    AppDb.push("advertisements", {
+    dbWrite("push", "advertisements", {
       title: title,
       description: desc,
       imageUrl: img,
@@ -650,11 +894,12 @@
       active: true,
       order: maxOrder + 1,
       createdAt: Date.now()
+    }, "Reklam ekleme", function () {
+      logOp("reklam.ekle", title);
+      toast("Reklam eklendi");
+      byId("ad-title").value = ""; byId("ad-desc").value = "";
+      byId("ad-img").value = ""; byId("ad-dur").value = "";
     });
-    logOp("reklam.ekle", title);
-    toast("Reklam eklendi");
-    byId("ad-title").value = ""; byId("ad-desc").value = "";
-    byId("ad-img").value = ""; byId("ad-dur").value = "";
   }
 
   /* ---------- BRANDIN ---------- */
@@ -665,12 +910,13 @@
     if (l && document.activeElement !== l) { l.value = state.branding.logoUrl || ""; }
   }
   function saveBranding() {
-    AppDb.update("branding", {
+    dbWrite("update", "branding", {
       name: byId("brand-name-input").value,
       logoUrl: byId("brand-logo-input").value
+    }, "Marka ayarlari", function () {
+      logOp("marka.ayar", byId("brand-name-input").value);
+      toast("Marka ayarlari kaydedildi");
     });
-    logOp("marka.ayar", byId("brand-name-input").value);
-    toast("Marka ayarlari kaydedildi");
   }
 
   /* ---------- BAGLANTI DURUMU ---------- */
@@ -678,9 +924,20 @@
     var el = byId("conn-box");
     if (!el) { return; }
     var s = state.status || {};
+    var at = s.at ? Number(s.at) : 0;
+    var ageMin = at ? Math.floor((Date.now() - at) / 60000) : -1;
+    var warn = "";
+    if (!at) {
+      warn = "<br><b style='color:#b3261e'>Bulut hizmetinden hic kalp atisi yok - Firebase fiyatlari hic guncellenmiyor.</b>";
+    } else if (ageMin > 5) {
+      warn = "<br><b style='color:#b3261e'>Bulut fiyat servisi " +
+        Math.floor(ageMin / 60) + " sa " + (ageMin % 60) + " dk'dir veri YAZMIYOR." +
+        " Firebase'deki fiyatlar bayat; ekran yalnizca tarayici yedegiyle canli kalir." +
+        " Google Cloud &gt; Cloud Run &gt; altug-price-ingestion servisini kontrol edin.</b>";
+    }
     el.innerHTML = "Bulut hizmet durumu: <b>" + escapeHtml(s.harem || "veri yok") + "</b><br>" +
       "Not: " + escapeHtml(s.note || "-") + "<br>" +
-      "Son kalp atışı: " + escapeHtml(s.at ? PriceFormatter.formatDateTime(s.at) : "-");
+      "Son kalp atışı: " + escapeHtml(at ? PriceFormatter.formatDateTime(at) : "-") + warn;
   }
 
   /* ---------- ADMIN UID / KURULUM ---------- */
@@ -688,9 +945,12 @@
     var v = byId("admin-uid-input").value;
     if (!v || v.length < 10) { toast("Gecersiz UID"); return; }
     if (state.rootAdminUid && !window.confirm("Root admin degisiyor. Emin misiniz?")) { return; }
-    AppDb.set("admins/rootAdminUid", v);
-    logOp("admin.uid", v);
-    toast("Root admin kaydedildi");
+    dbWrite("set", "admins/rootAdminUid", v, "Root admin", function () {
+      state.rootAdminUid = v;
+      logOp("admin.uid", v);
+      toast("Root admin kaydedildi");
+      try { updatePermBanner(); } catch (e) {}
+    });
   }
 
   function runSeed() {
@@ -703,18 +963,18 @@
     }
     if (hasProducts) { toast("Urunler zaten var - onyukleme atlandi"); return; }
     if (!window.confirm("Baslangic urunleri eklensin mi?")) { return; }
-    var i;
+    var i, writes = [], now = Date.now();
     /* Her urun tek tek set ile yazilir (sirali ve guvenli) */
     for (i = 0; i < INITIAL_PRODUCTS.length; i++) {
-      AppDb.set("products/seed" + (i + 1 < 10 ? "0" + (i + 1) : (i + 1)), {
+      writes.push(["set", "products/seed" + (i + 1 < 10 ? "0" + (i + 1) : (i + 1)), {
         name: INITIAL_PRODUCTS[i][0],
         buyMultiplier: INITIAL_PRODUCTS[i][1],
         sellMultiplier: INITIAL_PRODUCTS[i][2],
         active: true, tvVisible: true, archived: false,
-        order: i + 1, createdAt: Date.now(), updatedAt: Date.now()
-      });
+        order: i + 1, createdAt: now, updatedAt: now
+      }]);
     }
-    AppDb.update("settings", {
+    writes.push(["update", "settings", {
       goldReference: "has_buy",
       goldDisplayMode: "both",
       currencyDisplayMode: "both",
@@ -722,9 +982,11 @@
       eurShowMode: "both",
       showUsd: true,
       showEur: true
+    }]);
+    dbWriteMany("Baslangic verileri", writes, function () {
+      logOp("kurulum.onyukleme", INITIAL_PRODUCTS.length + " urun");
+      toast("Baslangic verileri yuklendi");
     });
-    logOp("kurulum.onyukleme", INITIAL_PRODUCTS.length + " urun");
-    toast("Baslangic verileri yuklendi");
   }
 
   /* ---------- LOGS ---------- */
@@ -885,7 +1147,7 @@
       activeUserTheme: id,
       activeUserThemeUpdatedAt: Date.now()
     }, function (err) {
-      if (err) { toast("Yay\u0131nlanamad\u0131: " + (err.message || err) + " (yetki mi?)"); return; }
+      if (err) { toast("Yay\u0131nlanamad\u0131: " + writeErrorMessage(err)); return; }
       /* Iyimser yerel guncelleme: 5 sn'lik poll beklenmez */
       state.settings.prevUserTheme = active;
       state.settings.activeUserTheme = id;
@@ -956,7 +1218,11 @@
       try { subscribeAll(); } catch (e) { toast("Abonelık hatası: " + e.message); }
 
       try { maybeStartHaremFallback(); } catch (e) {}
-      byId("btn-logout").onclick = function () { AppDb.logout(); window.location.href = "login.html"; };
+      byId("btn-logout").onclick = function () {
+        /* PostHog oturum kimligini sifirla: sonraki kullaniciya karismasin. */
+        try { if (window.AppAnalytics) { window.AppAnalytics.reset(); } } catch (e) {}
+        AppDb.logout(); window.location.href = "login.html";
+      };
       byId("btn-add-product").onclick = addProduct;
       var eSave = byId("edit-save"), eCancel = byId("edit-cancel"), eModal = byId("edit-modal");
       if (eSave) { eSave.onclick = saveEdit; }
