@@ -54,13 +54,15 @@ async function connectDb() {
 
 /* Doğrulanmış ham fiyatları ve bağlantı durumunu yazar.
  * Sadece değişen alanlar gönderilir (update semantics).
- * serverTime: Harem meta.time (ms) - varsa gerçek piyasa zamani kullanilir. */
+ * updatedAt: alım zamanı; marketTime: varsa Harem meta.time (ms). */
 async function writeMarketPrices(partial, serverTime) {
   const root = await connectDb();
-  const ts = (typeof serverTime === "number" && isFinite(serverTime) && serverTime > 0)
-    ? serverTime : Date.now();
+  const receivedAt = Date.now();
+  const marketTime = (typeof serverTime === "number" && isFinite(serverTime) && serverTime > 0)
+    ? serverTime : receivedAt;
   const payload = Object.assign({}, partial, {
-    updatedAt: ts,
+    updatedAt: receivedAt,
+    marketTime,
     source: "harem"
   });
   await new Promise((resolve, reject) => {

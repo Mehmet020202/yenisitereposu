@@ -126,63 +126,105 @@ var AppDb = (function () {
   function restGet(path, cb) {
     cb = cb || function () {};
     var base = restBase();
-    if (!base) { cb(null); return; }
+    if (!base) { cb(null, new Error("databaseURL bos")); return; }
     var clean = String(path).replace(/^\/+/, "");
-    function doFetch(token) {
+    var completed = false;
+    function finish(value, error) {
+      if (completed) { return; }
+      completed = true;
+      if (!error && value !== null) { connected = true; }
+      cb(value, error || null);
+    }
+    function doFetch(token, retried) {
       var url = base + "/" + clean + ".json";
       /* Auth token (varsa) ekle: admins/operationLogs gibi auth-isteyen
        * yollar anonim REST'e kapali (403). TV'de authSvc yok -> tokensuz. */
       if (token) { url += "?auth=" + encodeURIComponent(token); }
       try {
         var xhr = new XMLHttpRequest();
+        var requestDone = false;
         xhr.open("GET", url, true);
         if (xhr.timeout !== undefined) { try { xhr.timeout = 12000; } catch (e) {} }
         xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 0) {
-              var v = null;
-              try { v = JSON.parse(xhr.responseText); } catch (e) { v = null; }
-              if (v !== null) { connected = true; }
-              cb(v);
-            } else { cb(null); }
+          if (xhr.readyState !== 4 || requestDone) { return; }
+          requestDone = true;
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try { finish(JSON.parse(xhr.responseText), null); }
+            catch (e) { finish(null, new Error("Firebase REST yaniti JSON olarak okunamadi")); }
+          } else if (xhr.status === 401 && token && !retried && authSvc && authSvc.currentUser) {
+            try {
+              authSvc.currentUser.getIdToken(true).then(function (freshToken) {
+                doFetch(freshToken, true);
+              }, function (e) {
+                finish(null, e || new Error("Firebase kimlik belirteci yenilenemedi"));
+              });
+            } catch (e) { finish(null, e); }
+          } else {
+            finish(null, new Error("Firebase REST GET HTTP " + xhr.status));
           }
         };
-        try { xhr.ontimeout = function () { cb(null); }; } catch (e) {}
-        try { xhr.onerror = function () { cb(null); }; } catch (e) {}
+        try { xhr.ontimeout = function () {
+          if (!requestDone) { requestDone = true; finish(null, new Error("Firebase REST GET zaman asimi")); }
+        }; } catch (e) {}
+        try { xhr.onerror = function () {
+          if (!requestDone) { requestDone = true; finish(null, new Error("Firebase REST GET ag hatasi (HTTP 0)")); }
+        }; } catch (e) {}
         xhr.send();
-      } catch (e) { cb(null); }
+      } catch (e) { finish(null, e); }
     }
     try {
       var u = (authSvc && authSvc.currentUser) ? authSvc.currentUser : null;
       if (u && u.getIdToken) {
         var pr = u.getIdToken();
-        if (pr && pr.then) { pr.then(function (tok) { doFetch(tok); }, function () { doFetch(null); }); }
-        else { doFetch(null); }
-      } else { doFetch(null); }
-    } catch (e) { doFetch(null); }
+        if (pr && pr.then) { pr.then(function (tok) { doFetch(tok, false); }, function () { doFetch(null, false); }); }
+        else { doFetch(null, false); }
+      } else { doFetch(null, false); }
+    } catch (e) { doFetch(null, false); }
   }
-  /* Yolu periyodik oku; her yenide handler(val) cagrilir. Ilk cagri aninda. */
+  /* Yolu aralikli oku; hata durumunda son basarili degeri koru ve backoff uygula. */
   function poll(path, handler, intervalMs) {
     handler = handler || function () {};
     var stopped = false;
+    var timer = null;
+    var baseMs = intervalMs || 15000;
+    var lastValue = null;
+    var hasValue = false;
+    var failures = 0;
     function tick() {
       if (stopped) { return; }
-      try { restGet(path, function (v) { try { handler(v); } catch (e) {} }); }
-      catch (e) {}
+      try {
+        restGet(path, function (v, error) {
+          if (stopped) { return; }
+          if (error) {
+            failures++;
+            if (window.console && console.warn) { console.warn("Firebase poll hatasi (" + path + "): " + error.message); }
+          } else {
+            lastValue = v;
+            hasValue = true;
+            failures = 0;
+          }
+          try { handler(hasValue ? lastValue : null, error || null); } catch (e) {}
+          var delay = error ? Math.min(baseMs * Math.pow(2, failures), 60000) : baseMs;
+          timer = setTimeout(tick, delay);
+        });
+      } catch (e) {
+        failures++;
+        if (window.console && console.warn) { console.warn("Firebase poll hatasi (" + path + "): " + e.message); }
+        timer = setTimeout(tick, Math.min(baseMs * Math.pow(2, failures), 60000));
+      }
     }
     tick();
-    var iv = setInterval(tick, intervalMs || 15000);
-    return function () { stopped = true; try { clearInterval(iv); } catch (e) {} };
+    return function () { stopped = true; try { if (timer) { clearTimeout(timer); } } catch (e) {} };
   }
 
   /* ---------- YAZMA (REST, auth-token'li) ----------
    * SDK'nin yazma yolu da ayni motor/bundle sorunu yuzunden cokuyor;
    * bu yuzden yazmalar Firebase REST API ile: PATCH/PUT/POST/DELETE. */
-  function authToken(cb) {
+  function authToken(cb, forceRefresh) {
     try {
       var u = (authSvc && authSvc.currentUser) ? authSvc.currentUser : null;
       if (u && u.getIdToken) {
-        var pr = u.getIdToken();
+        var pr = u.getIdToken(forceRefresh === true);
         if (pr && pr.then) { pr.then(function (t) { cb(t); }, function () { cb(null); }); }
         else { cb(null); }
       } else { cb(null); }
@@ -195,24 +237,43 @@ var AppDb = (function () {
     var clean = String(path).replace(/^\/+/, "");
     authToken(function (token) {
       if (!token) { cb(new Error("Yazma icin yonetici girisi gerekli")); return; }
-      var url = base + "/" + clean + ".json?auth=" + encodeURIComponent(token);
+      function send(currentToken, retried) {
+        var url = base + "/" + clean + ".json?auth=" + encodeURIComponent(currentToken);
+        var requestDone = false;
+        function fail(error) {
+          if (requestDone) { return; }
+          requestDone = true;
+          cb(error);
+        }
       try {
         var xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
+        if (xhr.timeout !== undefined) { try { xhr.timeout = 15000; } catch (e) {} }
         xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
+          if (xhr.readyState === 4 && !requestDone) {
             if (xhr.status >= 200 && xhr.status < 300) {
+              requestDone = true;
               var res = null;
               try { res = JSON.parse(xhr.responseText); } catch (e) { res = null; }
               cb(null, res);
-            } else { cb(new Error("REST " + method + " HTTP " + xhr.status)); }
+            } else if (xhr.status === 401 && !retried && authSvc && authSvc.currentUser) {
+              requestDone = true;
+              authToken(function (freshToken) {
+                if (freshToken) { send(freshToken, true); }
+                else { cb(new Error("Firebase kimlik belirteci yenilenemedi")); }
+              }, true);
+            } else { fail(new Error("REST " + method + " HTTP " + xhr.status)); }
           }
         };
+        try { xhr.ontimeout = function () { fail(new Error("REST " + method + " zaman asimi")); }; } catch (e) {}
+        try { xhr.onerror = function () { fail(new Error("REST " + method + " ag hatasi (HTTP 0)")); }; } catch (e) {}
         if (method !== "DELETE") {
           try { xhr.setRequestHeader("Content-Type", "application/json"); } catch (e) {}
           xhr.send(JSON.stringify(data === undefined ? null : data));
         } else { xhr.send(); }
-      } catch (e) { cb(e); }
+      } catch (e) { fail(e); }
+      }
+      send(token, false);
     });
   }
 

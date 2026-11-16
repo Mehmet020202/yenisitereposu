@@ -5,13 +5,15 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>ALTU&#286; KUYUMCULUK</title>
 <script>
-/* Kisa yonlendirme: ?tv -> TV sayfasi, aksi halde yonetim girisi.
- * Firebase Hosting'de "/tv" ve "/admin" rewrite kurallari ile de
- * ayni sayfalara gidilir (firebase.json). */
+/* Kisa yonlendirme: varsayilan kullanici ekrani; ?admin veya ?login
+ * yonetim girisini acar. Firebase Hosting /tv ve /admin yollarini ayirir. */
 (function () {
   "use strict";
   var q = window.location.search || "";
-  if (q.indexOf("tv") > -1 || window.location.pathname.indexOf("/tv") > -1) {
+  var path = String(window.location.pathname || "").replace(/\/+$/, "");
+  var loginRequested = /(?:^|[?&])(?:admin|login)(?:=|&|$)/.test(q);
+  if (!loginRequested || /(?:^|[?&])tv(?:=|&|$)/.test(q) ||
+      /(?:^|\/)tv(?:\.html)?$/.test(path)) {
     window.location.replace("tv.html");
   } else {
     window.location.replace("login.html");

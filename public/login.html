@@ -40,13 +40,21 @@
     var form = document.getElementById("login-form");
     var errBox = document.getElementById("login-error");
     var btn = document.getElementById("login-btn");
+    function showError(message) {
+      var text = String(message || "");
+      if (typeof errBox.textContent !== "undefined") { errBox.textContent = text; }
+      else {
+        errBox.innerHTML = text.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+    }
     form.onsubmit = function (ev) {
       ev.preventDefault();
-      errBox.innerHTML = "";
+      showError("");
       var email = document.getElementById("login-email").value;
       var pass = document.getElementById("login-pass").value;
       if (!email || !pass) {
-        errBox.innerHTML = "E-posta ve &scedil;ifre gerekli.";
+        showError("E-posta ve şifre gerekli.");
         return;
       }
       btn.disabled = true;
@@ -57,13 +65,13 @@
         }, function (err) {
           btn.disabled = false;
           btn.innerHTML = "GIRI&#304; YAP";
-          errBox.innerHTML = "Giri&#351; ba&#351sarisiz: " +
-            (err && err.message ? err.message : "kullanici adi/&#351;ifre hatali");
+          showError("Giriş başarısız: " +
+            (err && err.message ? err.message : "Kullanıcı adı/şifre hatalı"));
         });
       } catch (e) {
         btn.disabled = false;
         btn.innerHTML = "GIRI&#304; YAP";
-        errBox.innerHTML = "Sistem hatasi: " + e.message;
+        showError("Sistem hatası: " + e.message);
       }
       return false;
     };

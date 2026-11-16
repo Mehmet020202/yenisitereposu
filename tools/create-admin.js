@@ -72,8 +72,8 @@ async function post(url, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(uid)
   });
-  console.log("   PUT -> " + res.statusCode + " " + (await res.text()).substring(0, 120));
-  if (res.statusCode !== 200) {
+  console.log("   PUT -> " + res.status + " " + (await res.text()).substring(0, 120));
+  if (res.status !== 200) {
     console.error("HATa: yazim basarisiz. Rules dagitilmis olabilir (bootstrap once yapilmali).");
     process.exit(1);
   }

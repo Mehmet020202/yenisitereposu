@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1c3c23">
 <title>ALTUĞ KUYUMCULUK - Güncel Altın Fiyatları</title>
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="css/tv.css">
 <!-- TASARIM 2 (Premium Yeşil): stiller yalniz #theme2-root / html.ui-theme-2
      altinda gecerli; Tasarim 1 stilleriyle (tv.css) cakisma yok. -->
@@ -329,5 +331,14 @@
 <script src="js/theme-manager.js"></script>
 <script src="js/themes/theme-2.js"></script>
 <script src="js/tv.js"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function (err) {
+      if (window.console && console.warn) { console.warn("Service Worker kaydedilemedi:", err); }
+    });
+  });
+}
+</script>
 </body>
 </html>

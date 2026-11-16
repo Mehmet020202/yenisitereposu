@@ -35,6 +35,7 @@ const PORT = parseInt(process.env.PORT || "8080", 10);
 /* In-memory son gecerli piyasa (previous degerler sıçrama kontrolü için) */
 let lastGood = {};
 let lastMessageAt = 0;
+let lastMarketTime = 0;
 let socketState = "connecting";
 
 const server = http.createServer((req, res) => {
@@ -172,6 +173,11 @@ function handlePrice(data, via) {
   }
 
   if (Object.keys(merged).length > 0) {
+    if (serverTime && lastMarketTime && serverTime < lastMarketTime) {
+      console.warn("OLD_EVENT ignored @" + serverTime + " < " + lastMarketTime);
+      return;
+    }
+    if (serverTime) lastMarketTime = Math.max(lastMarketTime, serverTime);
     flushPartial(merged, serverTime).catch((e) => console.error(e.message));
   } else {
     console.log("ESLESMEYEN veri (" + via + "): " + safeJson(data).substring(0, 300));
@@ -199,6 +205,11 @@ setInterval(async () => {
 (async function start() {
   try {
     lastGood = await fb.readCurrentMarket();
+    const storedMarketTime = Number(lastGood.marketTime ||
+      (lastGood.source === "harem" ? lastGood.updatedAt : 0));
+    if (Number.isFinite(storedMarketTime) && storedMarketTime > 0) {
+      lastMarketTime = storedMarketTime;
+    }
     console.log("Previous yuklendi: " + safeJson(lastGood).substring(0, 200));
   } catch (e) {
     console.error("Previous okunamadi (ilk calisma olabilir): " + e.message);

@@ -12,7 +12,7 @@ yerel sunucu **çalıştırılmaz**, bilgisayarın sürekli açık kalması **ge
 
 ```
 Harem Altın (Socket.IO)
-        │  tek merkezi bağlantı (bulutta)
+        │  birincil bağlantı (bulutta)
         ▼
 Bulut Fiyat Toplama Hizmeti  ◄──  Google Cloud Run konteyneri (sürekli açık)
   - veri doğrulama (boş/0/negatif/NaN/Infinity/ani sıçrama/eksik sembol)
@@ -24,9 +24,14 @@ Firebase Realtime Database  (ham fiyatlar + ayarlar + ürünler + reklamlar)
         ▼
  Admin paneli (/admin)          TV ekranı (/tv)
   e-posta+şifre ile giriş        kimlik doğrulama YOK (salt okuma)
-  hesaplamalar anında TV'ye      sayfa yenilenmeden güncellenir
-  yansır (RTDB aboneliği)        kapanıp açılınca son geçerli veriyi gösterir
+  hesaplamalar anında TV'ye      Firebase REST poll ile güncellenir
+  yansır (RTDB aboneliği)        bayat akışta Harem tarayıcı yedeği
 ```
+
+Bulut bağlantısı birincil kaynaktır. `allowBrowserFallback` etkinse TV ve
+yönetim paneli bayat veri durumunda Harem'e ayrıca bağlanabilir; yönetim
+paneli bu yedek akıştan geçerli fiyat alanlarını Firebase'e de senkronize eder.
+Bu nedenle "tek bağlantı" yalnızca normal/bulut akışı için geçerlidir.
 
 **Önemli dürüstlük notları:**
 
@@ -59,10 +64,14 @@ Firebase Realtime Database  (ham fiyatlar + ayarlar + ürünler + reklamlar)
 ```
 altug-kuyumculuk/
 ├── public/                  → Firebase Hosting'de /tv ve /admin olarak yayınlanır
-│   ├── index.html           → yönlendirme (tv.html / login.html)
+│   ├── index.html           → varsayılan kullanıcı ekranı; ?admin/?login ile yönetim girişi
+│   ├── 404.html             → bilinmeyen adres sayfası
+│   ├── offline.html         → Service Worker çevrimdışı ekranı
+│   ├── manifest.webmanifest → TV PWA bildirimi
 │   ├── login.html           → yönetim girişi (e-posta/şifre)
-│   ├── admin.html + js/admin.js + css/admin.css   → 13 bölümlük yönetim paneli
+│   ├── admin.html + js/admin.js + css/admin.css   → 14 bölümlük yönetim paneli
 │   ├── tv.html + js/tv.js + css/tv.css            → Toshiba TV fiyat ekranı (ES5)
+│   ├── sw.js + icons/icon.svg → TV Service Worker ve PWA simgesi
 │   ├── tests.html           → 11 senaryonun tarayıcı test koşumu
 │   └── js/
 │       ├── config.js        → databaseURL vb. (TEK doldurulacak dosya)
@@ -77,7 +86,7 @@ altug-kuyumculuk/
 ├── firebase/
 │   ├── database.rules.json  → güvenlik kuralları (aşağıda özet)
 │   └── storage.rules        → reklam/logo görselleri
-├── tests/run-tests.js       → 17 otomatik motor+E2E testi (ÇALIŞTIRILDI, 17/17 GEÇTİ)
+├── tests/run-tests.js       → 17 otomatik motor/doğrulama/Harem eşleme testi
 ├── firebase.json            → Hosting + rules + /tv /admin rewrite
 └── .env.example             → secret ŞABLOLARI (gerçek değerler PC'de TUTULMAZ)
 ```
@@ -88,41 +97,50 @@ altug-kuyumculuk/
 
 > Hiçbir adımda bilgisayarınıza bir şey kurmanıza gerek yoktur.
 
-1. **Firebase projesi:** console.firebase.google.com → "Proje ekle"
-   (ör. `altug-kuyumculuk`). Google hesabı gerekir.
+1. **Firebase projesi:** console.firebase.google.com → mevcut projeyi seçin
+   veya yenisini oluşturun. Yeni proje kullanılıyorsa `public/js/config.js`,
+   `FB_PROJECT_ID` ve `FB_DATABASE_URL` aynı projeye ait olmalıdır.
 2. **Realtime Database:** Sol menü → Realtime Database → **europe-west1**
    bölgesi seç → "Test modda başlat" DEĞİL, sonra adım 5'te kuralları yükleyin.
    Database URL'ini kopyalayın.
-3. **Hosting:** Sol menü → Hosting → "Başlat". Bu klasördeki `public/`
-   içeriğini Console arayüzünden yüklemek mümkün değildir; Hosting için
-   tek istisna: **Firebase Console → Hosting → basit yükleme** ya da
-   ücretsiz arayüz alternatifi olarak dosyaları GitHub repo'suna koyup
-   **Firebase Console → Hosting → Continuous Deployment** kullanın
-   (klonsuz, tarayıcıdan çalışır). Alternatif: Netlify/Vercel sürükle-bırak
-   (public klasörünü sürükleyin) — sonra `/tv` ve `/admin` yönlendirmelerini
-   panelde ekleyin.
-4. **Authentication:** Sol menü → Authentication → Get Started →
+3. **Authentication:** Sol menü → Authentication → Get Started →
    **Email/Password** etkinleştir. Bu yapılmadan ne yönetim girişi ne de
    `tools/create-admin.js` çalışır (REST'te `PASSWORD_LOGIN_DISABLED` / `OPERATION_NOT_ALLOWED` hatası alınır).
-   Yönetici kullanıcısını adım 8'deki betikle oluşturacaksanız "Add user" manuel olarak gerekmez.
-5. **Kuralları yükleyin:** Sol menü → Realtime Database → Rules sekmesine
-   `firebase/database.rules.json` içeriğini yapıştırın → Publish.
-   Storage → Rules sekmesine `firebase/storage.rules` içeriğini yapıştırın → Publish.
-6. **Legacy yetkilendirme (ZORUNLU):** Project Settings → General →
+   Authentication → Users → Add user ile root yönetici hesabını oluşturun ve UID'sini kopyalayın.
+4. **Root admin'i provision edin (kuralları yayımlamadan önce):** Realtime
+   Database → Data bölümünde `admins/rootAdminUid` değerini bu UID olarak
+   ekleyin. Firebase Console kullanımı kurallardan bağımsızdır. UID
+   tanımlanmadan sıkı kuralları yayımlarsanız istemciden ilk yönetici
+   oluşturulamaz; güvenlik amacıyla otomatik yetki devri kapalıdır.
+   `tools/create-admin.js` yalnızca kurallar yayımlanmadan önceki geçici
+   kurulum için kullanılmalıdır.
+5. **Kuralları yükleyin:** Realtime Database → Rules sekmesine
+   `firebase/database.rules.json` içeriğini yapıştırın → Publish. Sonra
+   Storage → Rules sekmesine `firebase/storage.rules` içeriğini yapıştırın
+   → Publish. UID'nin doğru olduğunu ve yalnızca root yöneticinin yazabildiğini
+   Rules Playground'da doğrulayın.
+6. **Storage admin claim'i:** Google Cloud Shell gibi güvenilir bir ortamda
+   `cloud/price-ingestion` dizinine geçip `npm ci` ve
+   `node set-admin-claim.js <root-uid>` çalıştırın. `FB_PROJECT_ID`,
+   `FB_DATABASE_URL`, `FB_CLIENT_EMAIL` ve `FB_PRIVATE_KEY` değerlerini Secret
+   Manager'dan sağlayın. Betik UID'nin `admins/rootAdminUid` ile eşleştiğini
+   doğrular. Bu claim yalnızca Storage görsel
+   yükleme/silme yetkisi verir. Kimlik belirtecinin yenilenmesi için
+   yöneticinin çıkış yapıp yeniden giriş yapması gerekir. Servis hesabı
+   anahtarını repoya veya herkese açık makineye koymayın.
+7. **Legacy yetkilendirme (ZORUNLU):** Project Settings → General →
    aşağıda **"Legacy authentication for Realtime Database"** kutusunu işaretleyin.
    Eski TV uyumlu SDK bu mekanizmayı kullanır.
-7. **config.js:** `public/js/config.js` içindeki `databaseURL` alanını
-   doldurun. Görselleri Storage'a yüklemek için `storageBucket` alanını da
-   doldurun (Console > Storage > `....appspot.com`); bos bırakırsanız
-   yükleme devre dışı kalır, yalnizca URL ile görsel eklenebilir. Yeniden yayınlayın.
-8. **admins/rootAdminUid (bir kez, kurallar YAYINLANMADAN ÖNCE):** En kolay yol:
-   `node tools/create-admin.js yonetici@ornek.com` — yönetici kullanıcısını
-   oluşturur, şifreyi terminale yazdırır ve `admins/rootAdminUid` satırını
-   bootstrap eder. (Kurallar yayınlandıktan sonra bu yol kural döngüsü nedeniyle
-   kapanır; o durumda UID Console'dan elle girilmelidir — bkz. adım 5 sırası.)
-9. **Admin paneli:** site adresi `/admin` → giriş yapın → sol menüdeki
+8. **config.js:** `public/js/config.js` içindeki Firebase yapılandırmasının
+   seçtiğiniz projeyle eşleştiğini doğrulayın. Storage için Console'daki
+   gerçek bucket değerini `storageBucket` alanına yazın. Değer boşsa görsel
+   dosya yükleme çalışmaz; URL ile reklam/logo ekleme kullanılabilir.
+9. **Hosting:** Firebase Hosting'e `public/` içeriğini yayınlayın. Proje
+   kökündeki `firebase.json` Hosting rewrite, başlık ve 404 davranışını
+   tanımlar.
+10. **Admin paneli:** site adresi `/admin` → giriş yapın → sol menüdeki
    **⚠ Kurulum / Önyükleme** düğmesiyle 11 başlangıç ürününü ekleyin.
-10. **Yerel SDK kopyası (ZATEN DEPODA HAZIR):** Eski TV tarayıcısı CDN'leri
+11. **Yerel SDK kopyası (ZATEN DEPODA HAZIR):** Eski TV tarayıcısı CDN'leri
    engelleyebildigi için sayfalardaki tek SDK referansı **yerel**
    `public/js/lib/firebase.js`'tir (v8.10.1 monolitik UMD — app+auth+database+storage
    tek dosya; cdnjs'den indirilir). Yeniden indirmek gerekirse:
@@ -144,6 +162,8 @@ Gerekli: Google Cloud hesabı (firebasewith aynı proje önerilir).
    `FB_PROJECT_ID`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY` (satır sonları `\n`
    olarak), `FB_DATABASE_URL`. **Bu değerler bilgisayarınızda kalıcı
    saklanmaz; bulut gizli kasasında tutulur.**
+   `FB_PROJECT_ID` ve `FB_DATABASE_URL`, web `config.js`'deki Firebase
+   projesiyle aynı olmalıdır.
 5. **Repo:** `cloud/price-ingestion` klasörünü GitHub repo'suna atın
    (veya Cloud Build → "Upload file" ile zip yükleyin).
 6. **Cloud Build:** Repo'yu bağlayın; `cloudbuild.yaml` otomatik çalışır:
@@ -168,8 +188,8 @@ Gerekli: Google Cloud hesabı (firebasewith aynı proje önerilir).
 - **Yönetim:** telefondan/tabletten `…/admin` → giriş.
   - **HAS Referansı:** alış/satış seçimi TÜM ürünlerin hem alış hem satış
     fiyatını aynı ortak bazdan yeniden hesaplar (anında TV'ye yansır).
-  - **Ürün Yönetimi:** ekle / satırda düzenle + KAYDET / sıral ↑↓ /
-    TV'de göster-gizle / arşivle / arşivden getir / onaylı kalıcı sil.
+  - **Ürün Yönetimi:** ekle / düzenle / sıral ↑↓ / TV'de göster-gizle /
+    arşivdeki ürünü yayına al / onaylı sil.
   - **USD/EUR Ayarları:** yüzde değil **sabit TL** düzeltmesi (+/-),
     göster/gizle ve yalnızca alış/satış modları birbirinden bağımsız.
   - **TV Görünüm:** altın alış/satış sütun modu, döviz bölümünü tamamen
@@ -186,13 +206,21 @@ Gerekli: Google Cloud hesabı (firebasewith aynı proje önerilir).
 
 | Alan | TV (oturumsuz) | Yönetici (girişli) | Bulut hizmeti |
 |---|---|---|---|
-| marketPrices, connectionStatus | okur | okur | **yalnızca bunları yazar** (`uid=ingest-service`) |
+| marketPrices, connectionStatus | okur | root admin yazar | `ingest-service` yazar |
 | settings, products, ads, branding, adjustments | okur | **yazar** (`uid=rootAdminUid`) | yazamaz |
-| admins, operationLogs | hayır | evet | hayır |
+| `admins` | oturum gerektirir | yönetici UID'sini okur/yazar | hayır |
+| `operationLogs` | hayır | root admin okur/yazar | hayır |
 
-- Frontend'de **hiçbir gizli anahtar yoktur** (yalnızca herkese açık RTDB URL).
-- Yetkisiz kullanıcı kural gereği hiçbir şeyi değiştiremez (Test 11 —
-  Firebase Console Rules Playground'da doğrulanmalıdır).
+- `rootAdminUid` yok/boşken Realtime Database yazmaları kapalıdır. Root UID,
+  sıkı kurallar yayımlanmadan önce Firebase Console'dan provision edilmelidir.
+- Storage'daki reklam/logo dosyaları herkese okunabilir; yazma/silme için
+  root yönetici hesabında `admin: true` Firebase Auth custom claim'i gerekir.
+- Fiyat alanları sıfır/negatif değerleri reddeder; `marketTime` kaynak piyasa
+  zamanıdır, `updatedAt` ise verinin alınıp kaydedildiği zamandır.
+- Web `apiKey` ve RTDB URL istemci yapılandırmalarıdır, servis hesabı anahtarı
+  değildir. Servis hesabı anahtarı yalnızca Secret Manager'da tutulmalıdır.
+- Rules Playground ve Storage Rules simülatörüyle yetkisiz/yetkili senaryolar
+  dağıtım öncesi ayrıca doğrulanmalıdır.
 
 ---
 
@@ -203,7 +231,7 @@ Gerekli: Google Cloud hesabı (firebasewith aynı proje önerilir).
 | V | **Harem canlı şeması** (`price_changed` → `data.{ALTIN,USDTRY,EURTRY}`) | ✅ **CANLI probe ile doğrulandı** + 3 otomatik E2E test (gerçek payload, ağ gerektirmez) |
 | 1 | HAS alış referansı (35.616 / 36.400) | ✅ Otomatik test geçti (`tests/run-tests.js`) |
 | 2 | HAS satış referansı — ortak baz | ✅ Otomatik test geçti |
-| 3 | Ürün ekleme → hesap kapsamı | ✅ Otomatik + tarayıcıda UI ile manuel |
+| 3 | Ürün ekleme → hesap kapsamı | ✅ Motor otomatik; yönetim UI yazımı ayrıca doğrulanmalı |
 | 4 | Çarpan düzenleme → yeniden hesaplama | ✅ Otomatik test geçti |
 | 5 | TV'den gizleme, kayıtta kalması | ✅ Otomatik test geçti |
 | 6 | USD sabit TL düzeltmesi (50,30/50,40) | ✅ Otomatik test geçti |
@@ -214,10 +242,8 @@ Gerekli: Google Cloud hesabı (firebasewith aynı proje önerilir).
 | 11 | Yetkisiz kullanıcı yazamasın | ⚠ Rules dosyası hazır; Console Rules Playground'da testedin |
 | — | **Gerçek Toshiba cihazında test** | ❌ **YAPILMADI.** Kod ES5 + eski SDK + savunmalı try/catch ile eski tarayıcıya göre yazıldı, ancak gerçek cihazda test edilmeden kesin uyumluluk iddia edilmez. |
 
-Ayrıca: **15 motor testi** konsolda çalıştırıldı ve geçti (bkz. `tests/run-tests.js`);
-tüm JS dosyaları `node --check` sözdizimi denetiminden geçti. 3 yeni test,
-canlı probe'dan alınan **gerçek `price_changed` payload'ı** ile şemayı,
-`meta.time` damgasını ve ALTIN→HAS referansı uçtan uca hesabını kanıtlar.
+Ayrıca: `tests/run-tests.js` 17 motor/doğrulama/Harem eşleme testi içerir.
+Bu testler Firebase Rules veya gerçek Cloud Run dağıtımını doğrulamaz.
 `public/tests.html` tarayıcıda aynı senaryoların koşumunu gösterir.
 
 ---

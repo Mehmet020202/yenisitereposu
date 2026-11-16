@@ -117,6 +117,11 @@ var Theme2 = (function () {
   function bindUI() {
     if (bound) { return; }
     bound = true;
+    if (window.addEventListener) {
+      window.addEventListener("resize", function () {
+        if (lastState && isActive()) { renderProducts(lastState); }
+      }, false);
+    }
     var i, tabs = document.getElementsByClassName("t2-tab");
     for (i = 0; i < tabs.length; i++) {
       if (tabs[i].getAttribute("data-tab")) {
@@ -421,15 +426,72 @@ var Theme2 = (function () {
         : (query ? "Aramaya uygun ürün bulunamadı." : "Ürün listesi bekleniyor...")) + '</div>';
     }
     body.innerHTML = html;
+    fitRows(shown);
+  }
+
+  function fitRows(count) {
+    var body = byId("t2-products-body");
+    if (!body) { return; }
+    var rows = body.children, i, row, labels, j;
+    var tvMode = String(document.documentElement.className || "").indexOf("tv-mode") > -1;
+    if (!tvMode) {
+      for (i = 0; i < rows.length; i++) {
+        row = rows[i];
+        row.style.height = "";
+        row.style.marginBottom = "";
+        row.style.paddingTop = "";
+        row.style.paddingBottom = "";
+        row.style.boxSizing = "";
+        labels = row.querySelectorAll ? row.querySelectorAll(".t2-pname,.t2-pbuy,.t2-psell-val") : [];
+        for (j = 0; j < labels.length; j++) { labels[j].style.fontSize = ""; }
+      }
+      body.style.overflowY = "";
+      return;
+    }
+    if (!count) { body.style.overflowY = "hidden"; return; }
+    var available = body.clientHeight;
+    if (!available) { body.style.overflowY = "auto"; return; }
+    var gap = Math.min(10, Math.max(2, Math.floor(available / count * 0.12)));
+    var rowHeight = Math.floor((available - (count - 1) * gap) / count);
+    if (rowHeight < 30) {
+      for (i = 0; i < rows.length; i++) {
+        rows[i].style.height = "";
+        rows[i].style.marginBottom = "";
+        rows[i].style.paddingTop = "";
+        rows[i].style.paddingBottom = "";
+        rows[i].style.boxSizing = "";
+        labels = rows[i].querySelectorAll ? rows[i].querySelectorAll(".t2-pname,.t2-pbuy,.t2-psell-val") : [];
+        for (j = 0; j < labels.length; j++) { labels[j].style.fontSize = ""; }
+      }
+      body.style.overflowY = "auto";
+      return;
+    }
+    var fontSize = Math.max(12, Math.min(22, Math.floor(rowHeight * 0.38)));
+    for (i = 0; i < rows.length; i++) {
+      row = rows[i];
+      row.style.height = rowHeight + "px";
+      row.style.marginBottom = (i === rows.length - 1 ? 0 : gap) + "px";
+      row.style.paddingTop = "0";
+      row.style.paddingBottom = "0";
+      row.style.boxSizing = "border-box";
+      labels = row.querySelectorAll ? row.querySelectorAll(".t2-pname,.t2-pbuy,.t2-psell-val") : [];
+      for (j = 0; j < labels.length; j++) { labels[j].style.fontSize = fontSize + "px"; }
+    }
+    body.style.overflowY = "hidden";
   }
 
   function renderMeta(state) {
     var m = state.market, s = state.settings || {};
-    setTxt("t2-updated", m && m.updatedAt ? PriceFormatter.formatDateTime(m.updatedAt) : "-");
+    var marketTime = m && (m.marketTime || m.updatedAt);
+    setTxt("t2-updated", marketTime ? PriceFormatter.formatDateTime(marketTime) : "-");
     var stale = true;
     if (m) {
       stale = !PriceFormatter.freshnessInfo(m.updatedAt, Date.now(),
         (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000).fresh;
+      if (!stale && m.source === "browser-fallback" && m.receivedAt) {
+        stale = !PriceFormatter.freshnessInfo(m.receivedAt, Date.now(),
+          (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000).fresh;
+      }
     }
     var bar = byId("t2-stale-bar");
     if (bar) { bar.style.display = stale && m ? "block" : "none"; }

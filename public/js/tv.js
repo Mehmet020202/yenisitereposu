@@ -132,14 +132,15 @@
 
   function effectiveStale() {
     if (!state.market) { return true; }
-    var viaFallbackFresh = fbAppliedAt > 0 &&
-      (Date.now() - fbAppliedAt) < ((window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000);
-    if (viaFallbackFresh) { return false; }
+    var staleLimit = (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000;
     var info = PriceFormatter.freshnessInfo(
-      state.market.updatedAt, Date.now(),
-      (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000
+      state.market.updatedAt, Date.now(), staleLimit
     );
-    return !info.fresh;
+    if (!info.fresh) { return true; }
+    if (state.market.source === "browser-fallback" && state.market.receivedAt) {
+      return !PriceFormatter.freshnessInfo(state.market.receivedAt, Date.now(), staleLimit).fresh;
+    }
+    return false;
   }
 
   function renderProducts() {
@@ -330,8 +331,9 @@
   function renderUpdated() {
     if (!state.market) { return; }
     var stale = effectiveStale();
-    setText("tv-updated", state.market.updatedAt ?
-      PriceFormatter.formatDateTime(state.market.updatedAt) : "-");
+    var marketTime = state.market.marketTime || state.market.updatedAt;
+    setText("tv-updated", marketTime ?
+      PriceFormatter.formatDateTime(marketTime) : "-");
     var bar = byId("tv-stale-bar");
     if (bar) { bar.style.display = stale ? "block" : "none"; }
     var note = byId("tv-note");
@@ -344,8 +346,8 @@
     var dot = byId("tv-live-dot"), txt = byId("tv-live-text");
     if (!dot || !txt) { return; }
     var st = state.status && state.status.harem ? state.status.harem : "unknown";
-    var viaFallbackFresh = fbAppliedAt > 0 &&
-      (Date.now() - fbAppliedAt) < ((window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000);
+    var viaFallbackFresh = state.market && state.market.source === "browser-fallback" &&
+      !effectiveStale();
     var live = !effectiveStale() &&
       ((AppDb.isConnected() && st === "connected") || viaFallbackFresh);
     dot.className = "dot " + (live ? "dot-green" : (st === "connected" || viaFallbackFresh ? "dot-amber" : "dot-red"));
@@ -492,10 +494,10 @@
    * dogruladigi yontemle (socket.io 4.4.1, websocket transport) dogrudan
    * Harem'e baglanir. Bu ver YALNIZCA ekranda gosterilir; Firebase'e
    * yazilMAZ (TV'nin yazma izni yoktur ve olmamalidir). */
-  var fbAppliedAt = 0;
   var haremSocket = null;
   var haremRetryMs = 5000;
   var haremRetryTimer = null;
+  var haremLastEventTime = 0;
 
   /* SDK'yi sirayla kaynaklardan yukle (biri engelliyse digeri denenir). */
   function loadScriptList(list, idx, onOk) {
@@ -588,11 +590,23 @@
         }
       }
       if (!out.hasBuy && !out.usdBuy) { return; }
-      var t = Date.now();
+      var receivedAt = Date.now();
+      var t = (res.meta && isFinite(Number(res.meta.time)) && Number(res.meta.time) > 0)
+        ? Number(res.meta.time) : receivedAt;
+      if (haremLastEventTime && t < haremLastEventTime) { return; }
+      if (!PriceFormatter.freshnessInfo(t, receivedAt,
+          (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000).fresh) { return; }
+      haremLastEventTime = Math.max(haremLastEventTime, t);
       /* Bulut akisi son 3 dakika icinde geldiyse ve gercekten tazeyse yedek yerine bulut kalir */
       var cloudFresh = state.market && state.market.source !== "browser-fallback" &&
-        state.market.updatedAt && (Date.now() - state.market.updatedAt < 180000);
+        state.market.updatedAt && PriceFormatter.freshnessInfo(
+          state.market.updatedAt, receivedAt,
+          (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000
+        ).fresh;
       if (cloudFresh) { return; }
+      var currentMarketTime = state.market && (state.market.marketTime ||
+        (state.market.source === "harem" ? state.market.updatedAt : 0));
+      if (currentMarketTime && t < currentMarketTime) { return; }
       var merged = {}, k;
       if (state.market) {
         for (k in state.market) {
@@ -600,10 +614,11 @@
         }
       }
       for (k in out) { if (out.hasOwnProperty(k)) { merged[k] = out[k]; } }
-      merged.updatedAt = t;
+      merged.updatedAt = receivedAt;
+      merged.marketTime = t;
+      merged.receivedAt = receivedAt;
       merged.source = "browser-fallback";
       state.market = merged;
-      fbAppliedAt = Date.now();
       if (!state.status) { state.status = {}; }
       state.status.harem = "connected";
       try { AppDb.cacheMarket(merged); } catch (e) {}

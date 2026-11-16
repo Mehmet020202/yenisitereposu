@@ -89,25 +89,26 @@
     return msg;
   }
 
-  function writeDone(label, err, onOk) {
+  function writeDone(label, err, onOk, onError) {
     if (err) {
       toast(label + " KAYDEDILEMEDI: " + writeErrorMessage(err));
       try { updatePermBanner(); } catch (e) {}
+      if (onError) { try { onError(err); } catch (e) {} }
       return;
     }
     if (onOk) { try { onOk(); } catch (e) {} }
   }
 
-  function dbWrite(how, path, data, label, onOk) {
+  function dbWrite(how, path, data, label, onOk, onError) {
     var done = function (err, res) {
-      writeDone(label, err, function () { if (onOk) { onOk(res); } });
+      writeDone(label, err, function () { if (onOk) { onOk(res); } }, onError);
     };
     try {
       if (how === "set") { AppDb.set(path, data, done); }
       else if (how === "remove") { AppDb.remove(path, done); }
       else if (how === "push") { AppDb.push(path, data, done); }
       else { AppDb.update(path, data, done); }
-    } catch (e) { writeDone(label, e); }
+    } catch (e) { writeDone(label, e, null, onError); }
   }
 
   /* Siralı/çoklu yazma: ilk hata aninda durur ve hata mesajini gosterir. */
@@ -214,18 +215,6 @@
       if (el) { el.innerHTML = v ? escapeHtml(v) : "ATANMAMIS"; }
       var inp = byId("admin-uid-input");
       if (inp && v && !inp.value) { inp.value = v; }
-      
-      // Eger rootAdminUid atanmamis ise ve giris yapmis bir yonetici varsa, otomatik ata!
-      if (!v && state.me && state.me.uid) {
-        AppDb.set("admins/rootAdminUid", state.me.uid, function (err) {
-          if (!err) {
-            state.rootAdminUid = state.me.uid;
-            if (el) { el.innerHTML = escapeHtml(state.me.uid); }
-            if (inp) { inp.value = state.me.uid; }
-            toast("Yonetici yetkisi (rootAdminUid) otomatik olarak hesabinizla eslestirildi.");
-          }
-        });
-      }
       try { updatePermBanner(); } catch (e) {}
     });
     AppDb.subscribe("operationLogs", function (v) { state.logs = v || {}; renderLogs(); });
@@ -236,6 +225,7 @@
    * de TV gibi dogrudan Harem socket'e baglanip CANLI fiyati gosterir.
    * YALNIZ ekranda; Firebase'e yazilmaz. config.allowBrowserFallback=true iken. */
   var haremAdminSocket = null, haremAdminRetryMs = 5000, haremAdminTimer = null;
+  var haremAdminEventTime = 0;
 
   /* SDK'yi sirayla kaynaklardan yukle (biri engelliyse digeri denenir). */
   function loadScriptAdminList(list, idx, onOk) {
@@ -316,37 +306,52 @@
         }
       }
       if (!out.hasBuy && !out.usdBuy) { return; }
-      var t = Date.now();
+      var receivedAt = Date.now();
+      var t = (res.meta && isFinite(Number(res.meta.time)) && Number(res.meta.time) > 0)
+        ? Number(res.meta.time) : receivedAt;
+      if (haremAdminEventTime && t < haremAdminEventTime) { return; }
+      var currentMarketTime = state.market.marketTime ||
+        (state.market.source === "harem" ? state.market.updatedAt : 0);
+      if (currentMarketTime && t < currentMarketTime) { return; }
+      if (!PriceFormatter.freshnessInfo(t, receivedAt,
+          (window.APP_CONFIG && window.APP_CONFIG.staleLimitMs) || 180000).fresh) { return; }
+      haremAdminEventTime = Math.max(haremAdminEventTime, t);
       var cloudFresh = state.market && state.market.source !== "browser-fallback" &&
-        state.market.updatedAt && (Date.now() - state.market.updatedAt < 180000);
+        state.market.updatedAt && (receivedAt - state.market.updatedAt < 180000);
       if (cloudFresh) { return; }
       var merged = {}, k;
       if (state.market) { for (k in state.market) { if (state.market.hasOwnProperty(k)) { merged[k] = state.market[k]; } } }
       for (k in out) { if (out.hasOwnProperty(k)) { merged[k] = out[k]; } }
-      merged.updatedAt = t; merged.source = "browser-fallback";
+      merged.updatedAt = receivedAt;
+      merged.marketTime = t;
+      merged.receivedAt = receivedAt;
+      merged.source = "browser-fallback";
       state.market = merged;
       renderMarket(); renderOverview(); renderHasPreview(); renderCurPreviews();
 
       /* Canli fiyati Firebase'e de senkronize et (bulut servisi kapaliysa admin paneli besler) */
-      syncLivePriceToFirebase(merged);
+      syncLivePriceToFirebase(out, receivedAt, t);
     } catch (e) {}
   }
     var lastFbSyncAt = 0;
-  function syncLivePriceToFirebase(payload) {
+  function syncLivePriceToFirebase(payload, updatedAt, marketTime) {
     try {
       if (!state.me || !state.me.uid) { return; }
       if (Date.now() - lastFbSyncAt < 15000) { return; } // En fazla 15 sn'de bir yaz
       lastFbSyncAt = Date.now();
       var fbPayload = {
-        hasBuy: payload.hasBuy || 0,
-        hasSell: payload.hasSell || 0,
-        usdBuy: payload.usdBuy || 0,
-        usdSell: payload.usdSell || 0,
-        eurBuy: payload.eurBuy || 0,
-        eurSell: payload.eurSell || 0,
-        updatedAt: Date.now(),
+        updatedAt: updatedAt,
+        marketTime: marketTime,
         source: "admin-live-sync"
       };
+      var priceFields = ["hasBuy", "hasSell", "usdBuy", "usdSell", "eurBuy", "eurSell"];
+      var i, field;
+      for (i = 0; i < priceFields.length; i++) {
+        field = priceFields[i];
+        if (typeof payload[field] === "number" && isFinite(payload[field]) && payload[field] > 0) {
+          fbPayload[field] = payload[field];
+        }
+      }
       if (payload.hasBuyDir) { fbPayload.hasBuyDir = payload.hasBuyDir; }
       if (payload.hasSellDir) { fbPayload.hasSellDir = payload.hasSellDir; }
       if (payload.usdBuyDir) { fbPayload.usdBuyDir = payload.usdBuyDir; }
@@ -418,7 +423,8 @@
     setTxt("mk-usd-sell", fmt(state.market.usdSell));
     setTxt("mk-eur-buy", fmt(state.market.eurBuy));
     setTxt("mk-eur-sell", fmt(state.market.eurSell));
-    setTxt("mk-updated", state.market.updatedAt ? PriceFormatter.formatDateTime(state.market.updatedAt) : "-");
+    var marketTime = state.market.marketTime || state.market.updatedAt;
+    setTxt("mk-updated", marketTime ? PriceFormatter.formatDateTime(marketTime) : "-");
     setTxt("mk-source", state.market.source || "-");
     /* musteriler ekraninda hesaplanan (ilk aktif urun bazli karsilastirma) */
     var calcTxt = "-";
@@ -453,9 +459,20 @@
       if (oa !== ob) { return oa - ob; }
       return String(a.name || "") < String(b.name || "") ? -1 : 1;
     });
-    var i;
+    var i, tvAction;
     for (i = 0; i < list.length; i++) {
       p = list[i];
+      if (p.archived === true) {
+        tvAction = "<span class='muted'>ARŞİVDE</span> " +
+          "<button class='btn-x' data-act='show' data-pid='" + escapeHtml(p._id) + "'>YAYINA AL</button>";
+      } else if (p.active === false) {
+        tvAction = "<span class='muted'>PASİF</span> " +
+          "<button class='btn-x' data-act='show' data-pid='" + escapeHtml(p._id) + "'>ETKİNLEŞTİR</button>";
+      } else if (p.tvVisible === false) {
+        tvAction = "<button class='btn-x' data-act='show' data-pid='" + escapeHtml(p._id) + "'>GÖSTER</button>";
+      } else {
+        tvAction = "<button class='btn-x' data-act='tvtoggle' data-pid='" + escapeHtml(p._id) + "'>GİZLE</button>";
+      }
       rows += "<tr>" +
         "<td>" + escapeHtml(p.name) + "</td>" +
         "<td>" + escapeHtml(String(p.buyMultiplier)) + "</td>" +
@@ -463,8 +480,7 @@
         "<td>" + (typeof p.order === "number" ? p.order : "-") +
         " <button class='btn-x' data-act='up' data-pid='" + escapeHtml(p._id) + "'>&uarr;</button>" +
         "<button class='btn-x' data-act='down' data-pid='" + escapeHtml(p._id) + "'>&darr;</button></td>" +
-        "<td><button class='btn-x' data-act='tvtoggle' data-pid='" + escapeHtml(p._id) + "'>" +
-        (p.tvVisible === false ? "GÖSTER" : "GİZLE") + "</button></td>" +
+        "<td>" + tvAction + "</td>" +
         "<td>" +
         "<button class='btn-x' data-act='edit' data-pid='" + escapeHtml(p._id) + "'>DÜZENLE</button>" +
         "<button class='btn-x btn-danger' data-act='delete' data-pid='" + escapeHtml(p._id) + "'>SİL</button>" +
@@ -532,6 +548,19 @@
 
     if (act === "edit") {
       openEdit(pid);
+    } else if (act === "show") {
+      dbWrite("update", "products/" + pid, {
+        archived: false,
+        active: true,
+        tvVisible: true
+      }, "Urunu kullanici ekraninda goster", function () {
+        p.archived = false;
+        p.active = true;
+        p.tvVisible = true;
+        renderProducts(); renderOverview(); renderHasPreview();
+        logOp("urun.yayinla", p.name);
+        toast("Urun kullanici ekraninda gosteriliyor");
+      });
     } else if (act === "tvtoggle") {
       var nv = p.tvVisible === false ? true : false;
       dbWrite("update", "products/" + pid, { tvVisible: nv }, "TV'de goster/gizle", function () {
@@ -624,20 +653,26 @@
     });
   }
 
+  function nextOrder(items) {
+    var max = 0, id, order;
+    for (id in items) {
+      if (!items.hasOwnProperty(id) || !items[id]) { continue; }
+      order = items[id].order;
+      if (typeof order === "number" && isFinite(order) && order > max) { max = order; }
+    }
+    return Math.floor(max) + 1;
+  }
+
   function addProduct() {
-    var name = byId("np-name").value;
-    var buy = PriceValidator.toNumber(byId("np-buy").value);
-    var sell = PriceValidator.toNumber(byId("np-sell").value);
-    var img = byId("np-img").value;
+    var nameInput = byId("np-name"), buyInput = byId("np-buy");
+    var sellInput = byId("np-sell"), imgInput = byId("np-img");
+    var name = nameInput.value, rawBuy = buyInput.value, rawSell = sellInput.value;
+    var img = imgInput.value;
+    var buy = PriceValidator.toNumber(rawBuy);
+    var sell = PriceValidator.toNumber(rawSell);
     if (!name || name.length > 60) { toast("Urun adi gecersiz"); return; }
     if (!isFinite(buy) || buy <= 0 || buy >= 1000) { toast("Alis carpani gecersiz"); return; }
     if (!isFinite(sell) || sell <= 0 || sell >= 1000) { toast("Satis carpani gecersiz"); return; }
-    var maxOrder = 0, k;
-    for (k in state.products) {
-      if (state.products.hasOwnProperty(k) && state.products[k]) {
-        maxOrder = Math.max(maxOrder, state.products[k].order || 0);
-      }
-    }
     var rec = {
       name: name,
       buyMultiplier: buy,
@@ -645,11 +680,13 @@
       active: true,
       tvVisible: true,
       archived: false,
-      order: maxOrder + 1,
+      order: nextOrder(state.products),
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
     if (img) { rec.imageUrl = img; }
+    var persisted = {}, prop;
+    for (prop in rec) { if (rec.hasOwnProperty(prop)) { persisted[prop] = rec[prop]; } }
     /* Yazma sonucu MUTLAKA beklenir: onceden hata yutuluyor ve basarisiz
      * kayitta bile "Urun eklendi" deniyordu. Bu yuzden yetki/oturum sorunu
      * olan bir panelde urun hic Firebase'e yazilmiyor, kullanici panelinde
@@ -659,18 +696,24 @@
     rec._id = tempId;
     state.products[tempId] = rec;
     renderProducts(); renderOverview(); renderHasPreview();
-    byId("np-name").value = ""; byId("np-buy").value = "";
-    byId("np-sell").value = ""; byId("np-img").value = "";
 
-    dbWrite("push", "products", rec, "Urun ekleme", function (res) {
+    dbWrite("push", "products", persisted, "Urun ekleme", function (res) {
       var newId = (res && res.name) ? res.name : null;
       delete state.products[tempId];
       if (newId) {
         rec._id = newId;
         state.products[newId] = rec;
       }
+      if (nameInput.value === name && buyInput.value === rawBuy &&
+          sellInput.value === rawSell && imgInput.value === img) {
+        nameInput.value = ""; buyInput.value = "";
+        sellInput.value = ""; imgInput.value = "";
+      }
       logOp("urun.ekle", name);
       toast("Urun eklendi - TV ekraninda gorunuyor");
+      renderProducts(); renderOverview(); renderHasPreview();
+    }, function () {
+      delete state.products[tempId];
       renderProducts(); renderOverview(); renderHasPreview();
     });
   }
@@ -882,17 +925,13 @@
     var img = byId("ad-img").value;
     var dur = PriceValidator.toNumber(byId("ad-dur").value);
     if (!title && !img) { toast("Baslik veya gorsel gerekli"); return; }
-    var maxOrder = 0, k;
-    for (k in state.ads) {
-      if (state.ads.hasOwnProperty(k) && state.ads[k]) { maxOrder = Math.max(maxOrder, state.ads[k].order || 0); }
-    }
     dbWrite("push", "advertisements", {
       title: title,
       description: desc,
       imageUrl: img,
       durationSec: isFinite(dur) && dur >= 3 && dur <= 120 ? dur : 10,
       active: true,
-      order: maxOrder + 1,
+      order: nextOrder(state.ads),
       createdAt: Date.now()
     }, "Reklam ekleme", function () {
       logOp("reklam.ekle", title);

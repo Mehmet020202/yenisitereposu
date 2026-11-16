@@ -14,7 +14,7 @@
  * ===================================================================== */
 "use strict";
 
-var CACHE_NAME = "altug-pwa-v3";
+var CACHE_NAME = "altug-pwa-v4";
 
 /* Goreli yollar: site alt klasorde yayinlansa da (or. /site/) calisir. */
 var SHELL = [
@@ -24,6 +24,8 @@ var SHELL = [
   "manifest.webmanifest",
   "css/tv.css",
   "css/theme-2.css",
+  "js/lib/firebase.js",
+  "js/lib/socket.io.min.js",
   "js/config.js",
   "js/price-validator.js",
   "js/price-engine.js",
@@ -33,9 +35,7 @@ var SHELL = [
   "js/theme-manager.js",
   "js/themes/theme-2.js",
   "js/tv.js",
-  "icons/icon-192.png",
-  "icons/icon-512.png",
-  "icons/icon-maskable-512.png"
+  "icons/icon.svg"
 ];
 
 self.addEventListener("install", function (ev) {
@@ -84,8 +84,10 @@ self.addEventListener("fetch", function (ev) {
   if (req.mode === "navigate" || /\.html?$/.test(url.pathname)) {
     ev.respondWith(
       fetch(req).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE_NAME).then(function (c) { c.put(req, copy); });
+        if (res && res.ok && res.type === "basic") {
+          var copy = res.clone();
+          caches.open(CACHE_NAME).then(function (c) { c.put(req, copy); });
+        }
         return res;
       }).catch(function () {
         return caches.match(req).then(function (hit) {

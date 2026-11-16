@@ -1,0 +1,17 @@
+{
+  "name": "ALTUĞ KUYUMCULUK Fiyat Ekranı",
+  "short_name": "Altuğ Fiyat",
+  "start_url": "./tv.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1eee1",
+  "theme_color": "#1c3c23",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
