@@ -10,7 +10,7 @@
 #  4. asagidaki adimlari calistirin.
 #
 # Ortam degiskenlari SECRET MANAGER'dan alinir (gcloud ile bir kez set edilir):
-#   FB_PROJECT_ID, FB_CLIENT_EMAIL, FB_PRIVATE_KEY, FB_DATABASE_URL,
+#   FB_PROJECT_ID, FB_CLIENT_EMAIL, FB_PRIVATE_KEY, FB_DATABASE_URL, FB_API_KEY,
 #   HAREM_SOCKET_URL, HAREM_SYMBOLS
 
 steps:
@@ -41,8 +41,9 @@ steps:
       - --cpu=1
       - --port=8080
       - --allow-unauthenticated
+      - --service-account=price-ingestion@$PROJECT_ID.iam.gserviceaccount.com
       - --set-env-vars=HAREM_SOCKET_URL=https://socket.haremaltin.com,HAREM_SYMBOLS=ALTIN,USDTRY,EURTRY
-      - --update-secrets=FB_PROJECT_ID=FB_PROJECT_ID:latest,FB_CLIENT_EMAIL=FB_CLIENT_EMAIL:latest,FB_PRIVATE_KEY=FB_PRIVATE_KEY:latest,FB_DATABASE_URL=FB_DATABASE_URL:latest
+      - --update-secrets=FB_PROJECT_ID=FB_PROJECT_ID:latest,FB_CLIENT_EMAIL=FB_CLIENT_EMAIL:latest,FB_PRIVATE_KEY=FB_PRIVATE_KEY:latest,FB_DATABASE_URL=FB_DATABASE_URL:latest,FB_API_KEY=FB_API_KEY:latest
 
 options:
   logging: CLOUD_LOGGING_ONLY

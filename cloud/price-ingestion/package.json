@@ -7,7 +7,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node test-firebase-client.js"
   },
   "dependencies": {
     "firebase": "8.10.1",

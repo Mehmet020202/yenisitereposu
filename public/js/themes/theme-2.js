@@ -221,7 +221,12 @@ var Theme2 = (function () {
     /* Cevirici: miktar/birim degisince aninda yeniden hesapla */
     var ca = byId("t2-conv-amount"), cu = byId("t2-conv-unit");
     if (ca) { ca.onkeyup = ca.onchange = function () { renderConverter(lastState); }; }
-    if (cu) { cu.onchange = function () { renderConverter(lastState); }; }
+    if (cu) {
+      cu.onchange = function () {
+        convSelId = cu.value;
+        renderConverter(lastState);
+      };
+    }
     /* Mobilde alt nav butonuyla acilan cevirici modalini KAPAT */
     var ccl = byId("t2-conv-close"), cvsb = byId("t2-sidebar");
     if (ccl) { ccl.onclick = closeConverter; }

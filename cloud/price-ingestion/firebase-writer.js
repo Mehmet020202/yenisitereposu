@@ -1,8 +1,8 @@
 /* =====================================================================
  * ALTUĞ KUYUMCULUK - Firebase Yazıcı Modülü (Node.js, bulut konteyneri)
  * =====================================================================
- * - Servis hesabı (GOOGLE_APPLICATION_CREDENTIALS) ile custom token üretir.
- * - Eski firebase@8 SDK'sı + custom token ile "ingest-service" kimliği
+ * - Firebase servis hesabı bilgileriyle custom token üretir.
+ * - firebase@8 SDK'sı + custom token ile "ingest-service" kimliği
  *   altına bağlanır. Security Rules'da marketPrices ve connectionStatus
  *   yalnızca bu kimliğe yazma izni verir.
  * - websockets-only transport: Node ortamında XHR/JSONP yoktur.
@@ -12,13 +12,32 @@
 
 const { initializeApp: initializeAdmin, cert } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
-const Firebase = require("firebase"); // firebase@8.10.x (eski API, Node desteği)
+const firebase = require("firebase");
 
 let adminReady = false;
+let firebaseApp = null;
 let dbRef = null;
+let dbConnectPromise = null;
+
+const APP_NAME = "price-ingestion";
+
+function validateConfig() {
+  const required = [
+    "FB_PROJECT_ID",
+    "FB_CLIENT_EMAIL",
+    "FB_PRIVATE_KEY",
+    "FB_DATABASE_URL",
+    "FB_API_KEY"
+  ];
+  const missing = required.filter((name) => !process.env[name]);
+  if (missing.length) {
+    throw new Error("Eksik Firebase yapılandırması: " + missing.join(", "));
+  }
+}
 
 function ensureAdmin() {
   if (adminReady) return;
+  validateConfig();
   initializeAdmin({
     credential: cert({
       projectId: process.env.FB_PROJECT_ID,
@@ -36,20 +55,32 @@ async function mintIngestToken() {
   return getAuth().createCustomToken("ingest-service", { role: "ingest" });
 }
 
-/* Eski SDK ile veritabanına bağlanır ve kök referansı döndürür. */
-async function connectDb() {
-  if (dbRef) return dbRef;
-  const url = process.env.FB_DATABASE_URL;
-  if (!url) throw new Error("FB_DATABASE_URL tanimli degil");
-  const token = await mintIngestToken();
-  const root = new Firebase(url);
-  await new Promise((resolve, reject) => {
-    root.authWithCustomToken(token, (err, authData) => {
-      if (err) reject(err); else resolve(authData);
-    });
+/* Firebase client SDK ile bağlanır; Security Rules ingest-service UID'sini denetler. */
+function connectDb() {
+  if (dbRef) return Promise.resolve(dbRef);
+  if (dbConnectPromise) return dbConnectPromise;
+
+  dbConnectPromise = (async () => {
+    validateConfig();
+    const url = process.env.FB_DATABASE_URL;
+    const apiKey = process.env.FB_API_KEY;
+    const token = await mintIngestToken();
+    if (!firebaseApp) {
+      firebaseApp = firebase.initializeApp({
+        apiKey,
+        databaseURL: url,
+        projectId: process.env.FB_PROJECT_ID
+      }, APP_NAME);
+    }
+    await firebaseApp.auth().signInWithCustomToken(token);
+    dbRef = firebaseApp.database().ref();
+    return dbRef;
+  })().catch((err) => {
+    dbConnectPromise = null;
+    throw err;
   });
-  dbRef = root;
-  return root;
+
+  return dbConnectPromise;
 }
 
 /* Doğrulanmış ham fiyatları ve bağlantı durumunu yazar.
@@ -93,6 +124,7 @@ async function readCurrentMarket() {
 }
 
 module.exports = {
+  validateConfig,
   connectDb,
   writeMarketPrices,
   writeConnectionStatus,

@@ -27,6 +27,8 @@ const { io } = require("socket.io-client");
 const { mapPriceMessage, validateFieldPair } = require("./harem-map");
 const fb = require("./firebase-writer");
 
+fb.validateConfig();
+
 const HAREM_URL = process.env.HAREM_SOCKET_URL || "https://socket.haremaltin.com";
 const SYMBOLS = (process.env.HAREM_SYMBOLS || "ALTIN,USDTRY,EURTRY").split(",");
 const MAX_JUMP = parseFloat(process.env.MAX_JUMP_RATIO || "0.30");
@@ -115,7 +117,7 @@ function connectHarem() {
     console.warn("Baglantı koptu: " + reason);
     try {
       await fb.writeConnectionStatus({ harem: "disconnected", note: "kopma: " + reason });
-    } catch (e) {}
+    } catch (e) { console.error("disconnect status yazilamadi: " + e.message); }
   });
 
   socket.on("connect_error", async (err) => {
@@ -123,7 +125,7 @@ function connectHarem() {
     console.warn("Baglanti hatasi: " + err.message);
     try {
       await fb.writeConnectionStatus({ harem: "error", note: err.message });
-    } catch (e) {}
+    } catch (e) { console.error("connect_error status yazilamadi: " + e.message); }
   });
 
   /* Bilinen olay adları; farklıysa logdan gerçek şemayı göreceğiz. */

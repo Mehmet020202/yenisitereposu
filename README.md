@@ -158,18 +158,22 @@ Gerekli: Google Cloud hesabı (firebasewith aynı proje önerilir).
    Service Account Credentials.
 3. **Servis hesabı:** IAM → Service Accounts → "price-ingestion" oluşturun →
    Key → Add Key → JSON indirin → içindeki `client_email` ve `private_key`'i not edin.
-4. **Secret Manager:** 4 secret oluşturun (`.env.example` adlarıyla birebir):
+4. **Secret Manager:** 5 secret oluşturun (`.env.example` adlarıyla birebir):
    `FB_PROJECT_ID`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY` (satır sonları `\n`
-   olarak), `FB_DATABASE_URL`. **Bu değerler bilgisayarınızda kalıcı
-   saklanmaz; bulut gizli kasasında tutulur.**
+   olarak), `FB_DATABASE_URL` ve `FB_API_KEY`. API anahtarı web yapılandırmasında
+   da kullanılan herkese açık Firebase anahtarıdır; parola/servis hesabı anahtarı
+   değildir. Diğer kimlik bilgileri bulut gizli kasasında tutulmalıdır.
    `FB_PROJECT_ID` ve `FB_DATABASE_URL`, web `config.js`'deki Firebase
    projesiyle aynı olmalıdır.
-5. **Repo:** `cloud/price-ingestion` klasörünü GitHub repo'suna atın
+5. **Servis hesabı erişimi:** `price-ingestion` servis hesabına bu secret'lar
+   için Secret Manager Secret Accessor rolü verin. Cloud Build deploy kimliği
+   de bu servis hesabını kullanabilmelidir (`Service Account User`).
+6. **Repo:** `cloud/price-ingestion` klasörünü GitHub repo'suna atın
    (veya Cloud Build → "Upload file" ile zip yükleyin).
-6. **Cloud Build:** Repo'yu bağlayın; `cloudbuild.yaml` otomatik çalışır:
+7. **Cloud Build:** Repo'yu bağlayın; `cloudbuild.yaml` otomatik çalışır:
    imaj bulutta derlenir → Cloud Run'a deploy edilir.
    Ilk deploy'dan sonra Cloud Run servisinde **min-instances=1** olduğunu doğrulayın.
-7. **Doğrulama:** Cloud Run → Hizmet → Logs (Cloud Run) sekmesinde:
+8. **Doğrulama:** Cloud Run → Hizmet → Logs (Cloud Run) sekmesinde:
    - `Baglandi. ID=...` satırı → Harem bağlantısı kuruldu
    - `WROTE {...} @<meta.time>` satırları → Firebase'e fiyat yazılıyor (şema
      3 Kas 2026 canlı probe ile doğrulandı; normalde bu satırları göreceksiniz)
